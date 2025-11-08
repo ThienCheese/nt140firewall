@@ -1,14 +1,14 @@
 #!/bin/bash
-if; then
+if [ "$EUID" -ne 0 ]; then
   echo "Vui long chay bang sudo"
-  exit
+  exit 1
 fi
 
 echo "--- Dang reset DNS ve DHCP (Tu dong) ---"
 
 INTERFACES=$(ip link | awk -F: '$2 ~ / en| wl/ && $3 ~ /<.*,UP,.*>/ {print $2}' | cut -d'@' -f1 | tr -d ' ')
 
-if; then
+if [ -z "$INTERFACES" ]; then
     echo "Khong tim thay interface mang nao dang hoat dong."
     exit 1
 fi

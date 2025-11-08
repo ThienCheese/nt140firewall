@@ -1,7 +1,7 @@
 #!/bin/bash
-if; then
+if [ "$EUID" -ne 0 ]; then
   echo "Vui long chay bang sudo"
-  exit
+  exit 1
 fi
 
 CONF_FILE="/etc/systemd/resolved.conf"
@@ -20,9 +20,9 @@ fi
 # Bước 2: Chỉnh sửa tệp cấu hình bằng sed
 # Bỏ ghi chú (uncomment) và đặt DNS thành tên miền của bạn
 sed -i -E "s/^[#]*DNS=.*/DNS=$DNS_DOMAIN/" $CONF_FILE
-# Bỏ ghi chú và đặt DNSOverTLS=yes [12, 13]
+# Bỏ ghi chú và đặt DNSOverTLS=yes
 sed -i -E "s/^[#]*DNSOverTLS=.*/DNSOverTLS=yes/" $CONF_FILE
-# Bỏ ghi chú và đặt Domains=~. (sử dụng làm mặc định) [14, 15]
+# Bỏ ghi chú và đặt Domains=~. (sử dụng làm mặc định)
 sed -i -E "s/^[#]*Domains=.*/Domains=~./" $CONF_FILE
 
 # Bước 3: Khởi động lại dịch vụ

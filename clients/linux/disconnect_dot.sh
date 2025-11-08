@@ -1,7 +1,7 @@
 #!/bin/bash
-if; then
+if [ "$EUID" -ne 0 ]; then
   echo "Vui long chay bang sudo"
-  exit
+  exit 1
 fi
 
 CONF_FILE="/etc/systemd/resolved.conf"
@@ -14,7 +14,7 @@ if [ -f "$CONF_FILE.bak" ]; then
     echo "Da khoi phuc cau hinh goc tu $CONF_FILE.bak"
 else
     echo "Khong tim thay file backup '$CONF_FILE.bak'."
-    echo "Ban co ahe phai chinh sua $CONF_FILE thu cong de hoan nguyen."
+    echo "Ban co the phai chinh sua $CONF_FILE thu cong de hoan nguyen."
     exit 1
 fi
 
