@@ -1,0 +1,57 @@
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    container_name: caddy_firewall
+    restart: unless-stopped
+    ports:
+      # Cổng 80 cho chuyển hướng HTTP->HTTPS và Sinkhole
+      - "80:80"
+      # Cổng 443 cho DoH và Dashboard (HTTP/3 được bật)
+      - "443:443"
+      - "8081:8081"
+      - "443:443/udp"
+      # Cổng 853 cho DoT
+      - "853:853"
+    networks:
+      - nt140-net
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sinkhole:/var/www/sinkhole
+      - ./dashboard:/app/dashboard
+      - ./clients:/app/clients
+      - ./setup:/app/setup  
+      - caddy_data:/data # Lưu trữ chứng chỉ TLS
+    environment:
+      # Cung cấp DUCKDNS_TOKEN cho module Caddy từ tệp.env
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+
+  dns_server:
+    container_name: dns_firewall_server
+    restart: unless-stopped
+    build:
+      context: ./server
+    ports:
+      # Ánh xạ cổng DNS thô trực tiếp đến máy chủ Python
+      # Cần thiết cho các máy khách LAN
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      - nt140-net
+    volumes:
+      - ./server/data:/app/data # Gắn thư mục data để lưu blacklist và DB
+    environment:
+      # Chuyển tiếp các biến cấu hình
+      - SINKHOLE_IP=${SINKHOLE_IP}
+      - ROUTER_IP=${ROUTER_IP}
+      - UPSTREAM_DNS_1=${UPSTREAM_DNS_1}
+      - UPSTREAM_DNS_2=${UPSTREAM_DNS_2}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+networks:
+  nt140-net:
+    driver: bridge
+
+volumes:
+  caddy_data:

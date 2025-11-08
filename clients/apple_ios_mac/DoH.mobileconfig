@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadDisplayName</key>
+    <string>nt140-firewall DNS (DoH)</string>
+    <key>PayloadIdentifier</key>
+    <string>org.duckdns.nt140firewall.dns.config</string>
+    <key>PayloadUUID</key>
+    <string>A5A4E0E8-A337-4B2C-8263-8A05F4118742</string> <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+    <key>PayloadDescription</key>
+    <string>Kích hoạt DNS Firewall (DoH) trên toàn hệ thống.</string>
+    
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadIdentifier</key>
+            <string>org.duckdns.nt140firewall.dns.settings</string>
+            <key>PayloadUUID</key>
+            <string>9C6A5A82-C2C0-411E-816E-10E7E2C9100F</string> <key>PayloadType</key>
+            <string>com.apple.dnsSettings.managed</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            
+            <key>DNSSettings</key>
+            <dict>
+                <key>DNSProtocol</key>
+                <string>HTTPS</string>
+                <key>ServerURL</key>
+                <string>https://nt140firewall.duckdns.org/dns-query</string>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>

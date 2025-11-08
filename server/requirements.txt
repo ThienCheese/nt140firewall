@@ -1,0 +1,16 @@
+# Lõi DNS (được cung cấp trong truy vấn )
+dnslib>=0.9.0
+
+# Framework API và máy chủ ASGI
+fastapi
+uvicorn[standard]
+
+# HTTP Client bất đồng bộ (cho DoH forwarder và blacklist updater)
+httpx[http2]
+
+# Quản lý cấu hình (đọc từ.env)
+pydantic-settings
+
+# Cơ sở dữ liệu bất đồng bộ (cho việc ghi nhật ký)
+sqlalchemy
+aiosqlite

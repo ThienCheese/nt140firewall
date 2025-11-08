@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hướng dẫn Kết nối nt140-firewall</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 1rem; }
+main { max-width: 800px; margin: 2rem auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 1.5rem; }
+h1, h2 { color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem; }
+ul { list-style: none; padding-left: 0; }
+li { background: #f9f9f9; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 0.5rem; }
+code { background: #eee; padding: 2px 5px; border-radius: 3px; }
+a { color: #2980b9; text-decoration: none; font-weight: bold; }
+a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+<h1>Hướng dẫn Kết nối nt140-firewall</h1>
+<p>Đây là trang hướng dẫn nội bộ. Chọn phương thức phù hợp cho thiết bị của bạn.</p>
+<p>Sau khi kết nối, bạn có thể truy cập dashboard đầy đủ tại: <code>..</code></p>
+
+    <section id="client-setup">
+        <h2>Thiết lập Client ("Một nút bấm")</h2>
+        
+        <h3>Thiết bị Di động & Laptop (Khuyên dùng)</h3>
+        <p>Sử dụng các phương thức này để được bảo vệ mọi lúc, mọi nơi (cả ở nhà và bên ngoài).</p>
+        <ul>
+            <li><b>iOS & macOS:</b> <a href="../clients/apple_ios_mac/DoH.mobileconfig" download>Tải Hồ sơ Cấu hình DoH</a></li>
+            <li><b>Android (9+):</b> Vào Cài đặt -> Mạng -> DNS cá nhân. Nhập: <code>nt140firewall.duckdns.org</code></li>
+            <li><b>Windows (DoH):</b> Tải <a href="../clients/windows/connect_doh.ps1" download>connect_doh.ps1</a> và <a href="../clients/windows/disconnect_doh.ps1" download>disconnect_doh.ps1</a>. (Nhấp chuột phải -> Run with PowerShell)</li>
+            <li><b>Linux (DoT):</b> Tải <a href="../clients/linux/connect_dot.sh" download>connect_dot.sh</a> và <a href="../clients/linux/disconnect_dot.sh" download>disconnect_dot.sh</a>. (Chạy bằng `sudo`)</li>
+        </ul>
+
+        <h3>Thiết bị Cố định (Chỉ dùng trong LAN)</h3>
+        <p>Chỉ dành cho máy tính để bàn hoặc các thiết bị không rời khỏi mạng gia đình.</p>
+        <ul>
+            <li><b>Windows (LAN):</b> Tải <a href="../clients/windows/connect.ps1" download>connect.ps1</a> và <a href="../clients/windows/disconnect.ps1" download>disconnect.ps1</a>.</li>
+            <li><b>Linux (LAN):</b> Tải <a href="../clients/linux/connect.sh" download>connect.sh</a> và <a href="../clients/linux/disconnect.sh" download>disconnect.sh</a>.</li>
+        </ul>
+    </section>
+</main>
+
+
+</body>
+</html>

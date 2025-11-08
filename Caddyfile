@@ -1,0 +1,87 @@
+# Khối toàn cục (Global block)
+{
+    # Plugin DuckDNS
+    acme_dns duckdns {env.DUCKDNS_TOKEN}
+
+    # === ĐỊNH NGHĨA LAYER 4 (DoT) ===
+    # Đặt BÊN TRONG khối global
+    layer4 {
+        # Máy chủ lắng nghe trên cổng 853
+        :853 {
+            # Định nghĩa một tuyến đường (route)
+            route {
+                # 1. Chấm dứt TLS
+                # Nó sẽ tự động sử dụng chứng chỉ của
+                # 'nt140firewall.duckdns.org'
+                tls
+
+                # 2. Proxy lưu lượng TCP thô
+                proxy {
+                    # Backend Python DoT
+                    upstream dns_server:8053
+                }
+            }
+        }
+    }
+}
+
+
+# ==================================
+# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
+# ==================================
+# Truy cập qua http://<server_ip>:8081
+:8081 {
+    # Phục vụ các tệp Client
+    handle /clients/* {
+        root * /app
+        file_server
+    }
+    
+    # Phục vụ trang setup (mặc định)
+    handle {
+        root * /app/setup
+        file_server
+    }
+}
+# ==================================
+# == Khối HTTP (DoH & Dashboard)
+# ==================================
+nt140firewall.duckdns.org {
+    # TLS cho khối HTTP này
+    tls {
+        dns duckdns {env.DUCKDNS_TOKEN}
+    }
+
+    # === Xử lý DoH ===
+    handle /dns-query {
+        reverse_proxy dns_server:8080
+    }
+
+    # === API và Dashboard ===
+    handle /api/* {
+        reverse_proxy dns_server:8000
+    }
+    
+    # Phục vụ các tệp Client
+    handle /clients/* {
+        root * /app # Root là /app, Caddy sẽ tìm /app + /clients/...
+        file_server
+    }
+    
+    # Phục vụ các tệp tĩnh của Dashboard
+    handle {
+        root * /app/dashboard
+        basicauth /* {
+            admin $2a$14$mt7R/ZgkDJ7C5gVOt4hGmOUyJSKeamQkkxsLCli8G9zM4ghJjoJA.
+        }
+        file_server
+    }
+}
+
+# ==================================
+# == Khối Sinkhole Server
+# ==================================
+:80 {
+    root * /var/www/sinkhole
+    file_server
+}
