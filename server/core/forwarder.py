@@ -1,7 +1,6 @@
 import asyncio
 import httpx
 from dnslib.dns import DNSRecord
-
 from core.config import settings
 
 # Tạo một HTTP client duy nhất, được chia sẻ để tái sử dụng kết nối
@@ -63,21 +62,26 @@ async def forward_doh(request_bytes: bytes, host: str) -> bytes | None:
         print(f"Lỗi khi chuyển tiếp DoH đến {host}: {e}")
         return None
 
+# ==================================
+# == PHẦN ĐÃ SỬA LỖI
+# ==================================
 async def forward_query(request_bytes: bytes, client_ip: str) -> bytes | None:
     """
-    Logic định tuyến thông minh:
-    - Máy khách LAN -> Chuyển tiếp đến Router (để phân giải DNS nội bộ).
-    - Máy khách WAN (DoH/DoT) -> Chuyển tiếp đến Upstream (để tránh vòng lặp).
+    Logic định tuyến đã được sửa lỗi (Fix):
+    - Bất kể client là LAN hay WAN (DoH/DoT), TẤT CẢ các truy vấn
+    - KHÔNG bị chặn (allowed) sẽ được chuyển tiếp (forward) đến
+    - các máy chủ DNS ngược dòng (upstream) công cộng (ví dụ: 1.1.1.1).
+    - Điều này đảm bảo một chính sách lọc nhất quán và
+    - tránh bị ảnh hưởng bởi bộ lọc của ISP/Router (tránh Split-Policy).
     """
-    is_lan_client = client_ip.startswith("192.168.") or client_ip == "127.0.0.1"
     
-    if is_lan_client:
-        # Chuyển tiếp đến Router qua UDP
-        return await forward_udp(request_bytes, settings.ROUTER_IP, 53)
-    else:
-        # Máy khách từ xa (DoH/DoT). Chuyển tiếp đến Upstream DoH công cộng
-        response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_1)
-        if response is None:
-            # Thử máy chủ dự phòng
-            response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
-        return response
+    # Bỏ qua client_ip, luôn sử dụng upstream công cộng
+    # để đảm bảo một chính sách lọc (policy) nhất quán.
+    response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_1)
+    
+    if response is None:
+        # Thử máy chủ dự phòng nếu máy chủ đầu tiên thất bại
+        print(f"Upstream 1 ({settings.UPSTREAM_DNS_1}) failed, trying upstream 2...")
+        response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
+        
+    return response
