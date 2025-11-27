@@ -59,6 +59,8 @@ services:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - caddy
+    extra_hosts: # <--- THÊM KHỐI NÀY
+      - "host.docker.internal:host-gateway"
   
 
 networks:
