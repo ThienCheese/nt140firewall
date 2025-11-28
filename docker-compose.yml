@@ -6,14 +6,13 @@ services:
     container_name: caddy_firewall
     restart: unless-stopped
     ports:
-      # Cổng 80 cho chuyển hướng HTTP->HTTPS và Sinkhole
+      # Cổng 80 cho Sinkhole trên LAN
       - "80:80"
-      # Cổng 443 cho DoH và Dashboard (HTTP/3 được bật)
-      - "443:443"
+      # Cổng 53 cho DNS thô trên LAN
+      - "53:53/udp"
+      - "53:53/tcp"
+      # Cổng 8081 cho trang hướng dẫn trên LAN
       - "8081:8081"
-      - "443:443/udp"
-      # Cổng 853 cho DoT
-      - "853:853"
     networks:
       - nt140-net
     volumes:
@@ -21,22 +20,19 @@ services:
       - ./sinkhole:/var/www/sinkhole
       - ./dashboard:/app/dashboard
       - ./clients:/app/clients
-      - ./setup:/app/setup  
-      - caddy_data:/data # Lưu trữ chứng chỉ TLS
-    environment:
-      # Cung cấp DUCKDNS_TOKEN cho module Caddy từ tệp.env
-      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      - ./setup:/app/setup
+      - caddy_data:/data # Lưu trữ dữ liệu Caddy (bao gồm cả chứng chỉ nội bộ)
+    healthcheck:
+      test: ["CMD", "caddy", "list-routes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   dns_server:
     container_name: dns_firewall_server
     restart: unless-stopped
     build:
       context: ./server
-    ports:
-      # Ánh xạ cổng DNS thô trực tiếp đến máy chủ Python
-      # Cần thiết cho các máy khách LAN
-      - "53:53/udp"
-      - "53:53/tcp"
     networks:
       - nt140-net
     volumes:
@@ -48,6 +44,7 @@ services:
       - UPSTREAM_DNS_1=${UPSTREAM_DNS_1}
       - UPSTREAM_DNS_2=${UPSTREAM_DNS_2}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared_tunnel
@@ -58,9 +55,8 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - caddy
-    extra_hosts: # <--- THÊM KHỐI NÀY
-      - "host.docker.internal:host-gateway"
+      caddy:
+        condition: service_healthy
   
 
 networks:

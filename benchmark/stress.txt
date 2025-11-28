@@ -1,0 +1,15 @@
+
+Statistics:
+
+  Queries sent:         505116
+  Queries completed:    479349 (94.90%)
+  Queries lost:         25667 (5.08%)
+  Queries interrupted:  100 (0.02%)
+
+  Response codes:       NOERROR 408583 (85.24%), SERVFAIL 3264 (0.68%), NXDOMAIN 67498 (14.08%), REFUSED 4 (0.00%)
+  Average packet size:  request 31, response 68
+  Run time (s):         5680.882095
+  Queries per second:   84.379326
+
+  Average Latency (s):  0.914693 (min 0.015106, max 4.999999)
+  Latency StdDev (s):   0.616574
