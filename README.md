@@ -127,10 +127,41 @@ Sau khi tunnel hoạt động, bạn cần trỏ tên miền của mình đến 
       - **Service:** `TCP` -> `caddy:853`
 
 ### Sử dụng
+
 - **Dashboard**: Truy cập `https://your-domain.com` và đăng nhập với mật khẩu bạn đã tạo.
 - **DoH Endpoint**: `https://your-domain.com/dns-query`
-- **DoT Endpoint**: `dot.your-domain.com`
-- **DNS cho mạng LAN**: Trỏ DNS của router hoặc các thiết bị trong mạng LAN đến địa chỉ IP của máy chủ Docker.
+- **DoT Endpoint**: `dot.your-domain.com` (hoặc tên miền phụ bạn đã cấu hình)
+
+#### Cấu hình cho Client
+
+Có hai cách chính để cấu hình các thiết bị của bạn sử dụng DNS Firewall:
+
+**1. Cấu hình trên từng thiết bị (Khuyên dùng cho thiết bị di động):**
+- Sử dụng các endpoint DoH/DoT ở trên để cấu hình trong cài đặt mạng của điện thoại, laptop...
+- **Ưu điểm:** Thiết bị của bạn sẽ được bảo vệ dù đang ở bất kỳ đâu (mạng nhà, 4G, Wi-Fi công cộng).
+
+**2. Cấu hình trên Router (Khuyên dùng cho mạng LAN):**
+- **Cách đơn giản:** Trong cài đặt DHCP của router, trỏ DNS server chính đến địa chỉ IP nội bộ của máy chủ Docker.
+- **Ưu điểm:** Mọi thiết bị kết nối vào mạng LAN sẽ tự động được bảo vệ mà không cần cấu hình riêng lẻ.
+- **Nhược điểm:** Chỉ hoạt động khi thiết bị đang ở trong mạng LAN.
+
+#### Cấu hình nâng cao: Sử dụng tên miền thống nhất cho LAN và WAN
+
+Để các thiết bị (đặc biệt là di động) có thể sử dụng **cùng một tên miền** mã hóa (ví dụ: `your-domain.com`) một cách liền mạch dù ở trong hay ngoài mạng LAN, bạn nên cấu hình router để thực hiện "Split-horizon DNS".
+
+**Mục tiêu:** Khi thiết bị ở trong mạng LAN, router sẽ phân giải `your-domain.com` thành địa chỉ IP nội bộ (`192.168.1.100`), thay vì địa chỉ IP công cộng.
+
+**Cách thực hiện trên router của bạn (ví dụ):**
+
+1.  **Đặt IP tĩnh cho máy chủ:** Trong cài đặt DHCP của router, hãy đặt một địa chỉ IP tĩnh (DHCP Reservation) cho máy chủ đang chạy Docker (ví dụ: `192.168.1.100`).
+2.  **Thêm bản ghi DNS tĩnh:** Tìm đến mục "DNS Hostname", "Static DNS", hoặc một mục tương tự trên router và thêm một bản ghi mới:
+    *   **Hostname:** `your-domain.com` (và `dot.your-domain.com` nếu có)
+    *   **IP Address:** `192.168.1.100`
+
+**Lợi ích:**
+- Một thiết bị di động có thể dùng cấu hình DoT `dot.your-domain.com` duy nhất.
+- Khi ở nhà, router sẽ trả về IP nội bộ, kết nối sẽ nhanh và không đi ra ngoài Internet.
+- Khi ra ngoài, DNS công cộng sẽ trả về IP của Cloudflare, và kết nối sẽ đi qua Tunnel. Trải nghiệm hoàn toàn liền mạch!
 
 ## 🔧 Tùy chỉnh
 
