@@ -1,6 +1,14 @@
+# Environment variables
 .env
+*.env.local
 
-.venv
-
+# Python
+.venv/
 __pycache__/
-.gitignore
+*.pyc
+
+# Docker
+docker-compose.override.yml
+
+# Caddy
+caddy_data/
