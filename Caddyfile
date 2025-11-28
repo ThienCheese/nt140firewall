@@ -9,24 +9,6 @@
 }
 
 # ==================================
-# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
-# ==================================
-# Truy cập qua http://<server_ip>:8081
-:8081 {
-    # Phục vụ các tệp Client
-    handle /clients/* {
-        root * /app
-        file_server
-    }
-    
-    # Phục vụ trang setup (mặc định)
-    handle {
-        root * /app/setup
-        file_server
-    }
-}
-
-# ==================================
 # == Khối HTTP (DoH & Dashboard) cho Cloudflare
 # ==================================
 # Tên miền này sẽ được Cloudflare Tunnel trỏ đến Caddy
@@ -52,7 +34,7 @@
     # Phục vụ các tệp tĩnh của Dashboard
     handle {
         root * /app/dashboard
-        basicauth /\* {
+        basicauth /* {
             admin {$ADMIN_HASH}
         }
         file_server
@@ -72,6 +54,24 @@
     
     # Proxy lưu lượng TCP thô đến backend Python DoT
     reverse_proxy dns_server:8053
+}
+
+# ==================================
+# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
+# ==================================
+# Truy cập qua http://<server_ip>:8081
+:8081 {
+    # Phục vụ các tệp Client
+    handle /clients/* {
+        root * /app
+        file_server
+    }
+    
+    # Phục vụ trang setup (mặc định)
+    handle {
+        root * /app/setup
+        file_server
+    }
 }
 
 # ==================================
