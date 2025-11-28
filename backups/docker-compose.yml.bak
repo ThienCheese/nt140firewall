@@ -48,6 +48,20 @@ services:
       - UPSTREAM_DNS_1=${UPSTREAM_DNS_1}
       - UPSTREAM_DNS_2=${UPSTREAM_DNS_2}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared_tunnel
+    restart: unless-stopped
+    command: tunnel run
+    networks:
+      - nt140-net
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - caddy
+    extra_hosts: # <--- THÊM KHỐI NÀY
+      - "host.docker.internal:host-gateway"
+  
 
 networks:
   nt140-net:

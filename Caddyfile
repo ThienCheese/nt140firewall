@@ -1,20 +1,57 @@
 # Khối toàn cục (Global block)
 {
-    # Tự động cấp chứng chỉ HTTPS cho các tên miền nội bộ và công cộng
-    # Caddy sẽ sử dụng Lets Encrypt cho tên miền công cộng và tự ký cho tên miền nội bộ
-    auto_https off
-    
-    # Server mặc định để xử lý các yêu cầu không khớp
-    default_sni dns_firewall_server
+    # Plugin DuckDNS
+    acme_dns duckdns {env.DUCKDNS_TOKEN}
+
+    # === ĐỊNH NGHĨA LAYER 4 (DoT) ===
+    # Đặt BÊN TRONG khối global
+    layer4 {
+        # Máy chủ lắng nghe trên cổng 853
+        :853 {
+            # Định nghĩa một tuyến đường (route)
+            route {
+                # 1. Chấm dứt TLS
+                # Nó sẽ tự động sử dụng chứng chỉ của
+                # 'nt140firewall.duckdns.org'
+                tls
+
+                # 2. Proxy lưu lượng TCP thô
+                proxy {
+                    # Backend Python DoT
+                    upstream dns_server:8053
+                }
+            }
+        }
+    }
 }
 
+
 # ==================================
-# == Khối HTTP (DoH & Dashboard) cho Cloudflare
+# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
 # ==================================
-# Tên miền này sẽ được Cloudflare Tunnel trỏ đến Caddy
-{$YOUR_DOMAIN_NAME} {
-    # TLS sẽ được xử lý bởi Cloudflare, Caddy chỉ cần nhận HTTP
+# Truy cập qua http://<server_ip>:8081
+:8081 {
+    # Phục vụ các tệp Client
+    handle /clients/* {
+        root * /app
+        file_server
+    }
     
+    # Phục vụ trang setup (mặc định)
+    handle {
+        root * /app/setup
+        file_server
+    }
+}
+# ==================================
+# == Khối HTTP (DoH & Dashboard)
+# ==================================
+nt140firewall.duckdns.org {
+    # TLS cho khối HTTP này
+    tls {
+        dns duckdns {env.DUCKDNS_TOKEN}
+    }
+
     # === Xử lý DoH ===
     handle /dns-query {
         reverse_proxy dns_server:8080
@@ -35,47 +72,14 @@
     handle {
         root * /app/dashboard
         basicauth /* {
-            admin {$ADMIN_HASH}
+            admin $2a$14$mt7R/ZgkDJ7C5gVOt4hGmOUyJSKeamQkkxsLCli8G9zM4ghJjoJA.
         }
         file_server
     }
 }
 
 # ==================================
-# == Khối DoT cho Cloudflare
-# ==================================
-# Cloudflare Tunnel sẽ chuyển tiếp lưu lượng TCP từ cổng 853
-# đến Caddy trên cổng 853 nội bộ.
-:853 {
-    # Caddy sẽ tự tạo chứng chỉ nội bộ cho `dns_firewall_server`
-    tls internal {
-        on_demand
-    }
-    
-    # Proxy lưu lượng TCP thô đến backend Python DoT
-    reverse_proxy dns_server:8053
-}
-
-# ==================================
-# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
-# ==================================
-# Truy cập qua http://<server_ip>:8081
-:8081 {
-    # Phục vụ các tệp Client
-    handle /clients/* {
-        root * /app
-        file_server
-    }
-    
-    # Phục vụ trang setup (mặc định)
-    handle {
-        root * /app/setup
-        file_server
-    }
-}
-
-# ==================================
-# == Khối Sinkhole Server cho LAN
+# == Khối Sinkhole Server
 # ==================================
 :80 {
     root * /var/www/sinkhole
