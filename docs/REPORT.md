@@ -36,66 +36,186 @@ Hệ thống được thiết kế theo kiến trúc module, bao gồm ba contai
 
 ---
 
-### **3. Phương pháp luận (Methodology)**
-Để trực quan hóa kiến trúc và luồng hoạt động của hệ thống, chúng tôi sử dụng các mô hình AI tạo sinh hình ảnh để vẽ sơ đồ. Dưới đây là các prompt được thiết kế để tạo ra các hình ảnh minh họa cần thiết.
+### **3. Related Work**
 
-#### **3.1. Prompt cho Sơ đồ Kiến trúc Tổng quan**
+Trong những năm gần đây, việc lọc DNS đã trở thành một phương pháp phổ biến để tăng cường bảo mật mạng. Một số giải pháp tiêu biểu bao gồm:
 
-**Prompt for Nano Banana Pro (or similar AI image generator):**
+**3.1. Pi-hole [5]**
+Pi-hole là một giải pháp mã nguồn mở phổ biến, hoạt động như một DNS sinkhole để chặn quảng cáo và tracking domains. Nó cung cấp giao diện web để quản lý và theo dõi thống kê. Tuy nhiên, Pi-hole thiếu hỗ trợ tích hợp cho các giao thức DNS mã hóa hiện đại (DoH/DoT) và không có giải pháp sẵn có cho vấn đề CGNAT.
+
+**3.2. AdGuard Home [6]**
+AdGuard Home là một phần mềm chặn quảng cáo mạng tương tự Pi-hole nhưng có hỗ trợ DoH/DoT. Tuy nhiên, việc triển khai từ xa vẫn yêu cầu cấu hình phức tạp với VPN hoặc port forwarding, và không có giải pháp tích hợp cho môi trường CGNAT.
+
+**3.3. Cloudflare Gateway [7]**
+Cloudflare Gateway cung cấp dịch vụ DNS lọc dựa trên cloud với khả năng mở rộng cao. Tuy nhiên, đây là một giải pháp thương mại và người dùng phải phụ thuộc hoàn toàn vào hạ tầng của bên thứ ba, thiếu khả năng tùy biến và kiểm soát dữ liệu.
+
+**3.4. Khoảng trống nghiên cứu (Research Gaps)**
+Các giải pháp hiện tại thường gặp phải một hoặc nhiều hạn chế sau:
+- Thiếu khả năng triển khai dễ dàng trong môi trường CGNAT mà không cần kiến thức kỹ thuật sâu về mạng.
+- Không tích hợp sẵn các giao thức DNS mã hóa với giải pháp truy cập từ xa.
+- Phụ thuộc vào dịch vụ bên thứ ba hoặc yêu cầu cấu hình phức tạp với VPN.
+- Thiếu khả năng tùy biến cao cho các trường hợp sử dụng cụ thể (custom blacklists, sinkhole pages).
+
+### **4. Phương pháp luận (Methodology)**
+
+#### **4.1. Thiết kế Kiến trúc**
+Để giải quyết các khoảng trống đã xác định, chúng tôi đề xuất một kiến trúc modular dựa trên container với ba thành phần chính:
+
+1. **Caddy Reverse Proxy**: Xử lý TLS termination và routing cho các giao thức DoH/DoT.
+2. **Python DNS Filter**: Thực hiện logic lọc với khả năng tùy biến cao.
+3. **Cloudflare Tunnel**: Giải quyết vấn đề CGNAT mà không cần cấu hình mạng phức tạp.
+
+**Đóng góp chính (Main Contributions):**
+- **C1**: Kiến trúc tích hợp Cloudflare Tunnel với DNS Firewall, cho phép triển khai dễ dàng trong môi trường CGNAT mà không cần IP tĩnh hay port forwarding.
+- **C2**: Hỗ trợ đồng thời cả DNS truyền thống (port 53) cho LAN và các giao thức mã hóa (DoH/DoT) cho WAN trong cùng một hệ thống.
+- **C3**: Cơ chế "Split-horizon DNS" cho phép thiết bị chuyển đổi liền mạch giữa mạng LAN và WAN mà không cần thay đổi cấu hình.
+- **C4**: Triển khai hoàn toàn bằng container, dễ dàng bảo trì và mở rộng.
+
+#### **4.2. Prompt cho Eraser - Sơ đồ Kiến trúc Hệ thống**
+
+**Prompt for Eraser.io:**
 ```
-Create a high-level architecture diagram for a container-based DNS Firewall system. The style should be clean, professional, and use standard cloud architecture icons. The diagram must include three main components, each in its own container box:
+Create a detailed system architecture diagram for a containerized DNS Firewall with Cloudflare Tunnel integration.
 
-1.  **Caddy Server (Container):**
-    *   Label it "Caddy Reverse Proxy".
-    *   Show external user devices (a laptop, a smartphone) connecting to it via the internet, with arrows labeled "DoH (port 443)" and "DoT (port 853)".
-    *   Show it serving a "Dashboard" and a "Sinkhole Page".
+Components to include:
 
-2.  **Python DNS Server (Container):**
-    *   Label it "Python DNS Filter".
-    *   Show an arrow from "Caddy Reverse Proxy" to this container, labeled "DNS Query".
-    *   Inside this container, show a simple logic flow: a diamond shape labeled "In Blacklist?", with a "Yes" arrow pointing to the "Sinkhole Page" (conceptually) and a "No" arrow pointing to an "Upstream DNS" component.
-    *   Show an icon for a blacklist file (e.g., a text file icon).
+1. External Layer:
+   - "Internet Users" group containing:
+     * "Mobile Device (4G/5G)"
+     * "Laptop (Public WiFi)"
+     * "Desktop (Remote Network)"
+   - "Cloudflare Global Network" cloud with services:
+     * "Edge Servers"
+     * "DDoS Protection"
+     * "TLS Termination"
+     * "Tunnel Service"
 
-3.  **Cloudflare Tunnel (Container):**
-    *   Label it "Cloudflared Tunnel".
-    *   Show a dotted line arrow from the "Caddy Reverse Proxy" container to a cloud icon labeled "Cloudflare Network".
-    *   Show an external user connecting to the "Cloudflare Network" to represent remote access.
+2. Network Boundary:
+   - "ISP with CGNAT" box showing blocked incoming connections
+   - "Home Router (192.168.1.1)" with NAT
+   - Bidirectional arrow from Router to Internet labeled "Outbound Only"
 
-Arrange the components logically, with clear data flow arrows. Use a color palette of blues, grays, and greens. The entire diagram should be enclosed in a box labeled "Docker Environment on Host Machine".
+3. Docker Environment (192.168.1.100):
+   - Container: "cloudflared"
+     * Label: "Cloudflare Tunnel Client"
+     * Show persistent encrypted connection to Cloudflare
+   - Container: "caddy"
+     * Label: "Caddy Reverse Proxy"
+     * Ports: 80, 443, 853, 8081
+     * Show connections to:
+       - cloudflared (HTTP/TCP)
+       - dns_server (HTTP)
+       - LAN clients (direct)
+   - Container: "dns_server"
+     * Label: "Python DNS Filter (FastAPI)"
+     * Ports: 53, 8000, 8053, 8080
+     * Internal components:
+       - "DNS Listener"
+       - "Blacklist Manager"
+       - "Query Logger"
+       - "Upstream Forwarder"
+   - Volume: "caddy_data" (persistent TLS certs)
+   - Volume: "server/data" (blacklist & database)
+
+4. LAN Clients:
+   - Group of devices: "Laptop", "Phone", "Desktop"
+   - Direct DNS connection to dns_server:53
+
+5. External Services:
+   - "Upstream DNS" (1.1.1.1, 8.8.8.8)
+
+Data Flows:
+1. Internet User → Cloudflare Edge (HTTPS/TLS) [green]
+2. Cloudflare Edge → cloudflared (Tunnel - Encrypted) [green, dashed]
+3. cloudflared → caddy (HTTP/TCP) [blue]
+4. caddy → dns_server (HTTP) [blue]
+5. dns_server → Upstream DNS (DNS) [orange]
+6. LAN Client → dns_server:53 (DNS) [purple, direct]
+7. dns_server → SQLite DB (Query Logs) [gray]
+
+Use standard cloud/network icons. Apply security zones with different background colors:
+- Red zone: Internet (untrusted)
+- Yellow zone: DMZ (Cloudflare)
+- Green zone: Internal (Docker containers)
+- Blue zone: LAN
 ```
 
-#### **3.2. Prompt cho Sơ đồ Luồng Dữ liệu (Data Flow Diagram)**
+#### **4.3. Prompt cho Eraser - Sơ đồ Luồng Dữ liệu (Data Flow)**
 
-**Prompt for Nano Banana Pro (or similar AI image generator):**
+**Prompt for Eraser.io:**
 ```
-Create a Data Flow Diagram (DFD) illustrating the process of a DNS query in a DNS Firewall system. Use a clear, diagrammatic style with simple shapes (circles for processes, rectangles for external entities, and open-ended rectangles for data stores).
+Create a detailed Data Flow Diagram (DFD) showing DNS query processing in the firewall system.
 
-The diagram should depict two main scenarios: "Blocked Domain" and "Allowed Domain".
+Use standard DFD notation:
+- Circles/Rounded rectangles for processes
+- Rectangles for external entities
+- Open rectangles for data stores
+- Arrows for data flows
 
-**Entities:**
-*   User Device (External)
-*   Upstream DNS Server (e.g., 8.8.8.8) (External)
+External Entities:
+1. "User Device" (top left)
+2. "Cloudflare Network" (top center)
+3. "Upstream DNS (1.1.1.1)" (top right)
 
-**Processes (Circles):**
-1.  "Receive Encrypted DNS Query (DoT/DoH)" - handled by Caddy.
-2.  "Decrypt & Forward Query" - handled by Caddy.
-3.  "Filter Domain against Blacklist" - handled by the Python DNS Server.
-4.  "Forward to Upstream DNS" - handled by the Python DNS Server.
-5.  "Return Sinkhole IP".
-6.  "Return Resolved IP".
+Processes:
+P1. "Receive DNS Query" (Caddy)
+P2. "Decrypt & Parse" (Caddy)
+P3. "Load Blacklist" (Python - Background)
+P4. "Check Domain" (Python - Query Handler)
+P5. "Forward to Upstream" (Python - Forwarder)
+P6. "Return Sinkhole IP" (Python - Blocker)
+P7. "Return Real IP" (Python - Resolver)
+P8. "Log Query" (Python - Logger)
 
-**Data Stores (Open-ended rectangles):**
-*   "Blacklist.txt"
+Data Stores:
+D1. "blacklist.txt" (Read-only)
+D2. "queries.db" (SQLite)
 
-**Flow:**
-1.  An arrow from "User Device" to Process 1, labeled "DNS Query (example.com)".
-2.  An arrow from Process 1 to Process 2.
-3.  An arrow from Process 2 to Process 3.
-4.  An arrow from Process 3 to the "Blacklist.txt" data store, labeled "Check Domain".
-5.  **Scenario 1 (Blocked):** An arrow from Process 3 to Process 5, labeled "Domain is malicious". An arrow from Process 5 back to the User Device, labeled "Sinkhole IP Address".
-6.  **Scenario 2 (Allowed):** An arrow from Process 3 to Process 4, labeled "Domain is safe". An arrow from Process 4 to "Upstream DNS Server", labeled "Resolve example.com". An arrow from "Upstream DNS Server" back to Process 4, labeled "Real IP Address". An arrow from Process 4 to Process 6, and finally an arrow from Process 6 back to the User Device, labeled "Real IP Address".
+Detailed Flow:
 
-Use different colors or line styles for the "Blocked" and "Allowed" paths to make them easy to distinguish.
+Scenario A - Blocked Domain (Red path):
+1. User Device → [DNS Query: ads.evil.com] → P1
+2. P1 → [Encrypted Query] → P2
+3. P2 → [Domain: ads.evil.com] → P4
+4. P4 → [Check] → D1
+5. D1 → [Match Found] → P4
+6. P4 → [Blocked] → P6
+7. P6 → [192.168.1.100] → P8
+8. P8 → [Log: BLOCKED, timestamp] → D2
+9. P8 → [Sinkhole IP] → User Device
+10. User Device → [HTTP] → Sinkhole Page
+
+Scenario B - Allowed Domain (Green path):
+1. User Device → [DNS Query: google.com] → P1
+2. P1 → [Encrypted Query] → P2
+3. P2 → [Domain: google.com] → P4
+4. P4 → [Check] → D1
+5. D1 → [No Match] → P4
+6. P4 → [Allow] → P5
+7. P5 → [DNS Query] → Upstream DNS
+8. Upstream DNS → [142.250.x.x] → P5
+9. P5 → [Real IP] → P7
+10. P7 → [142.250.x.x] → P8
+11. P8 → [Log: ALLOWED, timestamp] → D2
+12. P8 → [Real IP] → User Device
+13. User Device → [HTTPS] → google.com
+
+Background Process:
+- P3 (every 24h) → [Fetch] → External Blacklist Sources
+- External Sources → [New domains] → P3
+- P3 → [Update] → D1
+
+Add annotations:
+- "DoH/DoT" for encrypted queries from WAN
+- "Plain DNS" for queries from LAN
+- "Async Processing" for background tasks
+- Show query timing: <50ms for LAN, <200ms for WAN
+
+Use color coding:
+- Red: Blocked path
+- Green: Allowed path
+- Blue: Background updates
+- Gray: Logging operations
 ```
 
 ---
@@ -210,3 +330,8 @@ Hệ thống DNS Firewall dựa trên container đã chứng tỏ là một gi�
 [2] Cloudflare Tunnel - https://www.cloudflare.com/products/tunnel/
 [3] Docker - https://www.docker.com/
 [4] DNS Performance Testing Tool (dnsperf) - https://www.dns-oarc.net/tools/dnsperf
+[5] Pi-hole: A black hole for Internet advertisements - https://pi-hole.net/
+[6] AdGuard Home - Network-wide ads & trackers blocking DNS server - https://adguard.com/en/adguard-home/overview.html
+[7] Cloudflare Gateway - https://www.cloudflare.com/products/zero-trust/gateway/
+[8] Hoffman, P., McManus, P. (2018). "DNS Queries over HTTPS (DoH)", RFC 8484, IETF.
+[9] Hu, Z., Zhu, L., Heidemann, J., Mankin, A., Wessels, D., Hoffman, P. (2016). "Specification for DNS over Transport Layer Security (TLS)", RFC 7858, IETF.

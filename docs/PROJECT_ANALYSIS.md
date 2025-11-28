@@ -562,10 +562,31 @@ async def test_blacklist_blocking():
 
 Đây là một dự án **well-architected** với foundation tốt. Vấn đề CGNAT là blocking issue nhưng **có nhiều solutions dễ dàng** (khuyến nghị Cloudflare Tunnel - free & easy).
 
-Sau khi fix CGNAT, dự án có thể:
-- Serve production traffic
-- Scale to 1000+ queries/second
-- Support 100+ clients
-- Maintain 99.9% uptime
+### Đóng góp chính của dự án:
 
-**Next step:** Follow Phase 1 roadmap để fix CGNAT ngay hôm nay! 🚀
+1. **Giải pháp CGNAT tích hợp**: Không giống các giải pháp như Pi-hole hay AdGuard Home yêu cầu port forwarding hoặc VPN phức tạp, dự án này tích hợp sẵn Cloudflare Tunnel, cho phép triển khai dễ dàng cho người dùng gia đình.
+
+2. **Dual-mode Operation**: Hỗ trợ đồng thời DNS truyền thống cho LAN và giao thức mã hóa (DoH/DoT) cho WAN trong cùng một hệ thống, tối ưu cho cả hiệu năng và bảo mật.
+
+3. **Container-first Architecture**: Toàn bộ stack được đóng gói bằng Docker, đơn giản hóa việc deployment và maintenance so với các giải pháp cài đặt trực tiếp lên OS.
+
+4. **Split-horizon DNS Support**: Cho phép thiết bị di động sử dụng cùng một cấu hình DNS bất kể đang ở trong hay ngoài mạng nhà, tăng tính tiện dụng.
+
+Sau khi hoàn thiện việc tích hợp Cloudflare Tunnel, dự án có thể:
+- Serve production traffic với độ tin cậy cao
+- Scale to 1000+ queries/second với optimization phù hợp
+- Support 100+ clients đồng thời
+- Maintain 99.9% uptime với monitoring và alerting
+
+### So sánh với các giải pháp hiện có:
+
+| Tính năng | Pi-hole | AdGuard Home | Cloudflare Gateway | Dự án này |
+|-----------|---------|--------------|-------------------|-----------|
+| DoH/DoT Support | ❌ | ✅ | ✅ | ✅ |
+| CGNAT Solution | ❌ | ❌ (cần VPN) | ✅ (cloud only) | ✅ (hybrid) |
+| Self-hosted | ✅ | ✅ | ❌ | ✅ |
+| Container-based | ⚠️ (optional) | ⚠️ (optional) | N/A | ✅ |
+| Custom Blacklist | ✅ | ✅ | ⚠️ (limited) | ✅ |
+| Cost | Free | Free | Paid tiers | Free |
+
+**Next step:** Follow Phase 1 roadmap để hoàn thiện tích hợp Cloudflare Tunnel! 🚀
