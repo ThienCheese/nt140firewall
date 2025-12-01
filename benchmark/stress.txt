@@ -1,15 +1,15 @@
+dnsperf -s 192.168.1.100 -d queryfile.txt -c 160 -l 30
 
-Statistics:
-
-  Queries sent:         505116
-  Queries completed:    479349 (94.90%)
-  Queries lost:         25667 (5.08%)
-  Queries interrupted:  100 (0.02%)
-
-  Response codes:       NOERROR 408583 (85.24%), SERVFAIL 3264 (0.68%), NXDOMAIN 67498 (14.08%), REFUSED 4 (0.00%)
-  Average packet size:  request 31, response 68
-  Run time (s):         5680.882095
-  Queries per second:   84.379326
-
-  Average Latency (s):  0.914693 (min 0.015106, max 4.999999)
-  Latency StdDev (s):   0.616574
+Statistics:                                                                                                                      
+                                                                                                                                 
+  Queries sent:         53614                                                                                                    
+  Queries completed:    53599 (99.97%)                                                                                           
+  Queries lost:         15 (0.03%)                                                                                               
+                                                                                                                                 
+  Response codes:       NOERROR 41762 (77.92%), SERVFAIL 555 (1.04%), NXDOMAIN 11282 (21.05%)                                    
+  Average packet size:  request 30, response 71                                                                                  
+  Run time (s):         33.340799                                                                                                
+  Queries per second:   1607.609944                                                                                              
+                                                                                                                                 
+  Average Latency (s):  0.055416 (min 0.000081, max 4.267079)                                                                    
+  Latency StdDev (s):   0.178333   
