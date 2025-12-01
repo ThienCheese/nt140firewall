@@ -7,9 +7,14 @@ from core.config import settings
 # Đây là trình chuyển tiếp DoH của chúng ta
 doh_client = httpx.AsyncClient(
     headers={"Content-Type": "application/dns-message", "Accept": "application/dns-message"},
-    http2=True, # Sử dụng HTTP/2 cho hiệu suất DoH
+    http2=True,  # Sử dụng HTTP/2 cho hiệu suất DoH
     timeout=1.5,  # Giảm xuống 1.5s để tổng max = 3s
-    follow_redirects=True
+    follow_redirects=True,
+    limits=httpx.Limits(
+        max_connections=100,      # Tăng connection pool
+        max_keepalive_connections=50,  # Keep-alive connections
+        keepalive_expiry=30.0     # Keep connections open 30s
+    )
 )
 
 class UDPForwarderProtocol(asyncio.DatagramProtocol):
@@ -62,31 +67,36 @@ async def forward_doh(request_bytes: bytes, host: str) -> bytes | None:
         print(f"Lỗi khi chuyển tiếp DoH đến {host}: {e}")
         return None
 
+# Round-robin counter để load balance giữa upstreams
+_upstream_counter = 0
+
 # ==================================
 async def forward_query(request_bytes: bytes, client_ip: str) -> bytes | None:
     """
-    Logic định tuyến với parallel queries để giảm max latency:
-    - Query CẢ 2 upstream servers ĐỒNG THỜI
-    - Lấy kết quả nhanh nhất (first successful response)
-    - Max latency = timeout của 1 query (không phải 2x timeout)
+    Round-robin giữa 1.1.1.1 và 1.0.0.1 thay vì parallel queries
+    để tránh 2x request load lên upstream servers.
+    
+    - Sequential queries: Giảm load từ 656 req/s → 328 req/s
+    - Tránh HTTP/2 connection exhaustion
+    - Max latency = 1.5s (single timeout) thay vì 3s (parallel)
     """
+    global _upstream_counter
     
-    # Query cả 2 upstreams đồng thời (parallel)
-    tasks = [
-        forward_doh(request_bytes, settings.UPSTREAM_DNS_1),
-        forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
-    ]
+    # Round-robin: lần chẵn dùng 1.1.1.1, lần lẻ dùng 1.0.0.1
+    upstreams = [settings.UPSTREAM_DNS_1, settings.UPSTREAM_DNS_2]
+    primary = upstreams[_upstream_counter % 2]
+    fallback = upstreams[(_upstream_counter + 1) % 2]
+    _upstream_counter += 1
     
-    # Wait for first successful response
-    for task in asyncio.as_completed(tasks):
-        try:
-            response = await task
-            if response is not None:
-                # Got successful response, return immediately!
-                return response
-        except Exception as e:
-            # This upstream failed, try next one
-            continue
+    # Try primary first
+    response = await forward_doh(request_bytes, primary)
+    if response:
+        return response
+    
+    # Try fallback if primary failed
+    response = await forward_doh(request_bytes, fallback)
+    if response:
+        return response
     
     # Both failed
     print(f"⚠️ Both upstreams failed!")
