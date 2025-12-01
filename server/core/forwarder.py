@@ -8,7 +8,7 @@ from core.config import settings
 doh_client = httpx.AsyncClient(
     headers={"Content-Type": "application/dns-message", "Accept": "application/dns-message"},
     http2=True, # Sử dụng HTTP/2 cho hiệu suất DoH
-    timeout=2.0,  # Giảm từ 5s → 2s để fail fast
+    timeout=1.5,  # Giảm xuống 1.5s để tổng max = 3s
     follow_redirects=True
 )
 
@@ -47,7 +47,7 @@ async def forward_udp(request_bytes: bytes, host: str, port: int) -> bytes | Non
             lambda: UDPForwarderProtocol(request_bytes, response_future),
             remote_addr=(host, port)
         )
-        return await asyncio.wait_for(response_future, timeout=2.0)  # Giảm từ 5s → 2s
+        return await asyncio.wait_for(response_future, timeout=1.5)  # Giảm xuống 1.5s
     except Exception as e:
         print(f"Lỗi khi chuyển tiếp UDP đến {host}:{port}: {e}")
         return None
@@ -65,21 +65,29 @@ async def forward_doh(request_bytes: bytes, host: str) -> bytes | None:
 # ==================================
 async def forward_query(request_bytes: bytes, client_ip: str) -> bytes | None:
     """
-    Logic định tuyến đã được sửa lỗi (Fix):
-    - Bất kể client là LAN hay WAN (DoH/DoT), TẤT CẢ các truy vấn
-    - KHÔNG bị chặn (allowed) sẽ được chuyển tiếp (forward) đến
-    - các máy chủ DNS ngược dòng (upstream) công cộng (ví dụ: 1.1.1.1).
-    - Điều này đảm bảo một chính sách lọc nhất quán và
-    - tránh bị ảnh hưởng bởi bộ lọc của ISP/Router (tránh Split-Policy).
+    Logic định tuyến với parallel queries để giảm max latency:
+    - Query CẢ 2 upstream servers ĐỒNG THỜI
+    - Lấy kết quả nhanh nhất (first successful response)
+    - Max latency = timeout của 1 query (không phải 2x timeout)
     """
     
-    # Bỏ qua client_ip, luôn sử dụng upstream công cộng
-    # để đảm bảo một chính sách lọc (policy) nhất quán.
-    response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_1)
+    # Query cả 2 upstreams đồng thời (parallel)
+    tasks = [
+        forward_doh(request_bytes, settings.UPSTREAM_DNS_1),
+        forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
+    ]
     
-    if response is None:
-        # Thử máy chủ dự phòng nếu máy chủ đầu tiên thất bại
-        print(f"Upstream 1 ({settings.UPSTREAM_DNS_1}) failed, trying upstream 2...")
-        response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
-        
-    return response
+    # Wait for first successful response
+    for task in asyncio.as_completed(tasks):
+        try:
+            response = await task
+            if response is not None:
+                # Got successful response, return immediately!
+                return response
+        except Exception as e:
+            # This upstream failed, try next one
+            continue
+    
+    # Both failed
+    print(f"⚠️ Both upstreams failed!")
+    return None
