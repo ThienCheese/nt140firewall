@@ -165,7 +165,8 @@ class DNSCache:
 
 
 # Global cache instance
-dns_cache = DNSCache(max_size=10000, default_ttl=300)
+# Tăng size và TTL để improve cache hit rate
+dns_cache = DNSCache(max_size=50000, default_ttl=600)  # 50k entries, 10 min TTL
 
 
 async def start_cache_cleanup_worker():
