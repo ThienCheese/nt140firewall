@@ -127,62 +127,89 @@
             <!-- Tên miền của bạn (để tham khảo) -->
             <p style="text-align: center; background: #e8f4f8; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
                 <strong>🌐 Tên miền Firewall:</strong> <span class="hostname">thiencheese.me</span><br>
-                <small style="color: #666;">✅ Đã triển khai với Cloudflare Tunnel | ✅ Hỗ trợ DoH/DoT</small>
+                <small style="color: #666;">✅ Đã triển khai với Cloudflare Tunnel | ✅ Hỗ trợ DoH (DNS-over-HTTPS)</small><br>
+                <small style="color: #e67e22;">⚠️ DoT chỉ hoạt động trong LAN (192.168.1.100:853) - không qua tunnel</small>
             </p>
 
-            <h2>📱 Thiết bị Di động (Nhanh nhất - Khuyên dùng)</h2>
+            <h2>📱 Thiết bị Di động (Khuyên dùng cho WAN)</h2>
             <div class="device-section">
                 <!-- Hướng dẫn cho Android -->
                 <div class="device">
-                    <h3>🤖 Android (9+)</h3>
-                    <p><strong>✅ Phương pháp tốt nhất:</strong> Cấu hình Private DNS với DoT (DNS-over-TLS)</p>
+                    <h3>🤖 Android</h3>
+                    <p><strong>✅ Phương pháp tốt nhất:</strong> Dùng app <strong>Intra</strong> (Google) cho DoH</p>
                     <div class="qr-code">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=thiencheese.me" alt="QR Code for Android">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://play.google.com/store/apps/details?id=app.intra" alt="QR Code for Intra App">
                     </div>
                     <ol>
-                        <li>Quét mã QR bằng Camera hoặc Google Lens.</li>
-                        <li>Sao chép (Copy) text: <code>thiencheese.me</code></li>
-                        <li>Vào <strong>Cài đặt</strong> → <strong>Kết nối</strong> → <strong>DNS riêng tư</strong></li>
-                        <li>Chọn <strong>"Tên máy chủ của nhà cung cấp DNS riêng tư"</strong></li>
-                        <li>Dán <code>thiencheese.me</code> và nhấn <strong>Lưu</strong></li>
+                        <li>Quét mã QR hoặc tải <strong>Intra</strong> từ Google Play Store</li>
+                        <li>Mở app → Chọn <strong>"Configure custom server"</strong></li>
+                        <li>Nhập DoH URL: <code>https://thiencheese.me/dns-query</code></li>
+                        <li>Bật <strong>"Protection"</strong></li>
+                        <li>✅ App sẽ tạo VPN local để route DNS qua DoH</li>
                     </ol>
                     <p style="background: #d4edda; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
-                        ✅ <strong>Ưu điểm:</strong> Mã hóa toàn bộ DNS, hoạt động dù ở nhà hay ra ngoài (4G/5G/WiFi công cộng)
+                        ✅ <strong>Ưu điểm:</strong> Mã hóa TLS 1.3, hoạt động mọi nơi (4G/5G/WiFi công cộng)
                     </p>
+                    
+                    <details style="margin-top: 1rem;">
+                        <summary style="font-size: 0.95rem; color: #e67e22;">⚠️ Về Android Private DNS</summary>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                            Android Private DNS sử dụng DoT (DNS-over-TLS) port 853. Do Cloudflare Tunnel không hỗ trợ DoT, 
+                            Private DNS <strong>không hoạt động từ xa</strong>. Chỉ dùng được trong LAN với hostname: <code>192.168.1.100</code>
+                        </p>
+                    </details>
                 </div>
 
                 <!-- Hướng dẫn cho iOS / macOS -->
                 <div class="device">
-                    <h3>🍎 iOS & macOS</h3>
-                    <p><strong>Cách 1:</strong> Dùng app hỗ trợ DoH (DNSCloak, 1.1.1.1)</p>
-                    <ol>
-                        <li>Tải app <strong>DNSCloak</strong> (miễn phí) từ App Store</li>
-                        <li>Mở app → <strong>DNS Servers</strong> → <strong>Add Server</strong></li>
-                        <li>Chọn <strong>DNS-over-HTTPS</strong></li>
-                        <li>Nhập URL: <code>https://thiencheese.me/dns-query</code></li>
-                        <li>Nhấn <strong>Save</strong> và kích hoạt</li>
-                    </ol>
-                    
-                    <p><strong>Cách 2:</strong> Tải profile cấu hình (yêu cầu file .mobileconfig)</p>
+                    <h3>🍎 iOS (iPhone/iPad)</h3>
+                    <p><strong>✅ Phương pháp tốt nhất:</strong> Dùng app <strong>DNSCloak</strong> hoặc <strong>1.1.1.1</strong></p>
                     <div class="qr-code">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://thiencheese.me/clients/apple_ios_mac/DoH.mobileconfig" alt="QR Code for iOS/macOS">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://apps.apple.com/app/dnscloak-secure-dns-client/id1452162351" alt="QR Code for DNSCloak">
                     </div>
                     <ol>
-                        <li>Quét mã QR để tải profile (nếu đã tạo file .mobileconfig)</li>
-                        <li>Vào <strong>Settings</strong> → <strong>Profile Downloaded</strong></li>
-                        <li>Nhấn <strong>Install</strong> và xác nhận</li>
+                        <li>Quét QR hoặc tải <strong>DNSCloak</strong> từ App Store</li>
+                        <li>Mở app → <strong>Settings</strong> → <strong>DNS Settings</strong></li>
+                        <li>Tap <strong>"+"</strong> để thêm server mới</li>
+                        <li>Chọn <strong>DNS-over-HTTPS</strong></li>
+                        <li>Server URL: <code>https://thiencheese.me/dns-query</code></li>
+                        <li>Name: <code>ThienCheese DNS</code></li>
+                        <li>Bật <strong>"Use this server"</strong></li>
                     </ol>
-                    <p style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
-                        ⚠️ <strong>Lưu ý:</strong> iOS không hỗ trợ DoT native, cần dùng app hoặc profile
+                    <p style="background: #d4edda; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                        ✅ <strong>Ưu điểm:</strong> Mã hóa end-to-end, ad blocking toàn cục
+                    </p>
+                    
+                    <details style="margin-top: 1rem;">
+                        <summary style="font-size: 0.95rem;">🔧 Cách 2: Configuration Profile (Advanced)</summary>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">
+                            Tạo file <code>.mobileconfig</code> với DoH settings cho iOS. 
+                            <a href="https://developer.apple.com/documentation/devicemanagement/dnssettings" target="_blank">Apple Developer Docs</a>
+                        </p>
+                    </details>
+                    
+                    <p style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem; margin-top: 1rem;">
+                        ⚠️ <strong>Lưu ý:</strong> iOS không hỗ trợ DoT native, phải dùng app bên thứ 3
                     </p>
                 </div>
             </div>
 
             <h2>💻 Máy tính (Desktop/Laptop)</h2>
             <p style="background: #e3f2fd; padding: 0.8rem; border-radius: 6px; margin-bottom: 1rem;">
-                <strong>💡 Gợi ý:</strong> Nếu máy tính <strong>chỉ dùng tại nhà</strong>, cấu hình DNS LAN (192.168.1.100) để có tốc độ nhanh nhất. 
-                Nếu <strong>thường xuyên mang ra ngoài</strong> (laptop), dùng DoH để được bảo vệ ở mọi nơi.
+                <strong>💡 Gợi ý:</strong> Nếu máy tính <strong>chỉ dùng tại nhà</strong>, cấu hình DNS LAN (<code>192.168.1.100</code>) để có tốc độ nhanh nhất (2-5ms). 
+                Nếu <strong>thường xuyên mang ra ngoài</strong> (laptop), dùng DoH qua browser hoặc system-wide để được bảo vệ ở mọi nơi.
             </p>
+            
+            <div style="background: #fff3cd; padding: 0.8rem; border-radius: 6px; margin-bottom: 1rem; border-left: 4px solid #f39c12;">
+                <strong>⚡ Khuyến nghị cấu hình Router (cho toàn bộ mạng LAN):</strong>
+                <ol style="margin: 0.5rem 0 0; padding-left: 1.5rem;">
+                    <li>Login vào router admin panel (thường là <code>192.168.1.1</code>)</li>
+                    <li>Tìm <strong>DHCP Settings</strong> → <strong>Primary DNS Server</strong></li>
+                    <li>Đổi thành: <code>192.168.1.100</code> (IP của DNS Firewall)</li>
+                    <li>Save và reboot router</li>
+                    <li>✅ Tất cả thiết bị trong nhà tự động dùng DNS Firewall!</li>
+                </ol>
+            </div>
             
             <!-- Hướng dẫn cho Windows -->
             <details>
@@ -247,24 +274,30 @@
                     <li>Restart network: <code>sudo systemctl restart NetworkManager</code></li>
                 </ol>
 
-                <h4>Cách 2: systemd-resolved (DNS-over-TLS)</h4>
+                <h4>Cách 2: dnscrypt-proxy (DNS-over-HTTPS system-wide)</h4>
                 <pre style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;">
-<code># Edit /etc/systemd/resolved.conf
-sudo nano /etc/systemd/resolved.conf
+<code># Install dnscrypt-proxy
+sudo apt install dnscrypt-proxy  # Ubuntu/Debian
+# hoặc
+sudo dnf install dnscrypt-proxy  # Fedora
 
-# Add these lines:
-[Resolve]
-DNS=1.1.1.1
-DNSOverTLS=yes
-Domains=~.
+# Edit config
+sudo nano /etc/dnscrypt-proxy/dnscrypt-proxy.toml
 
-# Restart service
-sudo systemctl restart systemd-resolved
+# Thêm custom server:
+[static.'thiencheese']
+stamp = 'sdns://AgcAAAAAAAAADTE5Mi4xNjguMS4xMDAADnRoaWVuY2hlZXNlLm1lCi9kbnMtcXVlcnk'
 
-# Verify
-resolvectl status</code></pre>
+# Hoặc dùng DNS LAN đơn giản hơn:
+listen_addresses = ['127.0.0.1:53']
+server_names = ['cloudflare']
+fallback_resolvers = ['192.168.1.100:53']
+
+# Restart
+sudo systemctl restart dnscrypt-proxy
+sudo systemctl enable dnscrypt-proxy</code></pre>
                 <p style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
-                    ⚠️ <strong>Lưu ý:</strong> systemd-resolved không hỗ trợ custom DoT hostname, cần dùng <code>stubby</code> hoặc <code>dnscrypt-proxy</code>
+                    💡 <strong>Tip:</strong> Dùng DNS LAN (<code>192.168.1.100</code>) cho tốc độ tốt nhất khi ở nhà
                 </p>
 
                 <h4>Cách 3: Command line (nhanh)</h4>
@@ -302,9 +335,109 @@ sudo networksetup -setdnsservers Wi-Fi 192.168.1.100
 # Verify
 scutil --dns</code></pre>
 
-                <h4>Cách 3: DNS Profile (DoH/DoT)</h4>
-                <p>Cài đặt app <strong>DNSCloak</strong> hoặc tạo Configuration Profile (.mobileconfig) với DoH endpoint:</p>
-                <code>https://thiencheese.me/dns-query</code>
+                <h4>Cách 3: DoH qua Browser (Safari/Chrome)</h4>
+                <ul>
+                    <li><strong>Safari:</strong> Không hỗ trợ DoH native (dùng DNSCloak app thay thế)</li>
+                    <li><strong>Chrome:</strong> Settings → Privacy & Security → Use secure DNS → Custom → <code>https://thiencheese.me/dns-query</code></li>
+                    <li><strong>Firefox:</strong> Settings → Network Settings → Enable DNS over HTTPS → Custom → <code>https://thiencheese.me/dns-query</code></li>
+                </ul>
+                
+                <h4>Cách 4: Configuration Profile (.mobileconfig)</h4>
+                <p>Tạo profile với DoH settings cho macOS. Xem hướng dẫn tại: 
+                <a href="https://developer.apple.com/documentation/devicemanagement/dnssettings" target="_blank">Apple Developer Docs</a></p>
+            </details>
+            
+            <!-- Thêm hướng dẫn cho Chrome OS -->
+            <details>
+                <summary>🌐 Chrome OS / Chromebook</summary>
+                
+                <h4>Cách 1: System DNS Settings (LAN)</h4>
+                <ol>
+                    <li>Mở <strong>Settings</strong> → <strong>Network</strong></li>
+                    <li>Click vào kết nối hiện tại (Wi-Fi/Ethernet)</li>
+                    <li>Scroll xuống <strong>"Name servers"</strong></li>
+                    <li>Chọn <strong>"Custom name servers"</strong></li>
+                    <li>Nhập: <code>192.168.1.100</code></li>
+                    <li>Click <strong>Apply</strong></li>
+                </ol>
+                
+                <h4>Cách 2: Chrome Browser DoH (WAN)</h4>
+                <ol>
+                    <li>Mở Chrome → <strong>Settings</strong></li>
+                    <li>Privacy and security → <strong>Security</strong></li>
+                    <li>Scroll xuống <strong>"Use secure DNS"</strong></li>
+                    <li>Chọn <strong>"With Custom"</strong></li>
+                    <li>Nhập: <code>https://thiencheese.me/dns-query</code></li>
+                </ol>
+            </details>
+            
+            <!-- Thêm hướng dẫn cho Android TV / Smart TV -->
+            <details>
+                <summary>📺 Android TV / Smart TV</summary>
+                
+                <h4>⚠️ Giới hạn:</h4>
+                <p style="background: #fff3cd; padding: 0.8rem; border-radius: 4px;">
+                    Hầu hết Smart TV không hỗ trợ DoH/DoT. Khuyến nghị cấu hình DNS ở <strong>Router DHCP</strong> để áp dụng cho toàn bộ mạng LAN.
+                </p>
+                
+                <h4>Cách 1: Cấu hình DNS thủ công (LAN only)</h4>
+                <ol>
+                    <li>Vào <strong>Settings</strong> → <strong>Network & Internet</strong></li>
+                    <li>Chọn kết nối hiện tại → <strong>Advanced settings</strong></li>
+                    <li>Chọn <strong>"IP settings"</strong> → <strong>"Static"</strong></li>
+                    <li>Giữ nguyên IP, Gateway, Subnet mask</li>
+                    <li>DNS 1: <code>192.168.1.100</code></li>
+                    <li>DNS 2: <code>1.1.1.1</code> (backup)</li>
+                    <li>Save</li>
+                </ol>
+                
+                <h4>Cách 2: Cấu hình Router (Khuyên dùng)</h4>
+                <p>Xem phần <strong>"Khuyến nghị cấu hình Router"</strong> ở trên để áp dụng cho tất cả thiết bị.</p>
+            </details>
+            
+            <!-- Thêm hướng dẫn cho Gaming Console -->
+            <details>
+                <summary>🎮 PlayStation / Xbox / Nintendo Switch</summary>
+                
+                <h4>DNS LAN cho Gaming Console</h4>
+                <p style="background: #e3f2fd; padding: 0.8rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <strong>💡 Lưu ý:</strong> Gaming consoles không hỗ trợ DoH/DoT. Chỉ có thể dùng DNS LAN (<code>192.168.1.100</code>).
+                </p>
+                
+                <h4>PlayStation 4/5:</h4>
+                <ol>
+                    <li>Settings → Network → Set Up Internet Connection</li>
+                    <li>Chọn Wi-Fi/LAN → Custom</li>
+                    <li>IP Address Settings: <strong>Automatic</strong></li>
+                    <li>DHCP Host Name: <strong>Do Not Specify</strong></li>
+                    <li>DNS Settings: <strong>Manual</strong></li>
+                    <li>Primary DNS: <code>192.168.1.100</code></li>
+                    <li>Secondary DNS: <code>1.1.1.1</code></li>
+                    <li>Test Internet Connection</li>
+                </ol>
+                
+                <h4>Xbox One/Series:</h4>
+                <ol>
+                    <li>Settings → General → Network Settings</li>
+                    <li>Advanced Settings → DNS Settings</li>
+                    <li>Chọn <strong>Manual</strong></li>
+                    <li>Primary DNS: <code>192.168.1.100</code></li>
+                    <li>Secondary DNS: <code>1.1.1.1</code></li>
+                </ol>
+                
+                <h4>Nintendo Switch:</h4>
+                <ol>
+                    <li>System Settings → Internet → Internet Settings</li>
+                    <li>Chọn network hiện tại → Change Settings</li>
+                    <li>DNS Settings: <strong>Manual</strong></li>
+                    <li>Primary DNS: <code>192.168.1.100</code></li>
+                    <li>Secondary DNS: <code>1.1.1.1</code></li>
+                    <li>Save</li>
+                </ol>
+                
+                <p style="background: #d4edda; padding: 0.8rem; border-radius: 4px; margin-top: 1rem;">
+                    ✅ <strong>Benefit:</strong> Chặn ads trong games, faster DNS lookup, improve online gaming experience
+                </p>
             </details>
         </div>
 
@@ -364,11 +497,22 @@ scutil --dns</code></pre>
                 </details>
 
                 <details style="margin-top: 1rem;">
-                    <summary style="cursor: pointer; font-weight: bold;">❌ DoT/DoH không hoạt động từ WAN</summary>
+                    <summary style="cursor: pointer; font-weight: bold;">❌ DoH không hoạt động từ WAN</summary>
                     <ul>
                         <li>Kiểm tra Cloudflare Tunnel status: Vào Zero Trust Dashboard</li>
                         <li>Xem logs cloudflared: <code>docker compose logs cloudflared</code></li>
-                        <li>Verify Public Hostnames đã cấu hình đúng (HTTP + TCP)</li>
+                        <li>Verify Public Hostname đã cấu hình đúng (HTTP service → <code>http://caddy:80</code>)</li>
+                        <li>Test DoH endpoint: <code>curl https://thiencheese.me/dns-query?name=google.com&type=A</code></li>
+                    </ul>
+                </details>
+                
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; font-weight: bold;">❌ Android Private DNS không hoạt động</summary>
+                    <ul>
+                        <li>⚠️ <strong>Expected behavior:</strong> Android Private DNS sử dụng DoT (port 853)</li>
+                        <li>Cloudflare Tunnel <strong>không hỗ trợ DoT</strong> qua tunnel (technical limitation)</li>
+                        <li><strong>Solution:</strong> Dùng app <strong>Intra</strong> với DoH URL: <code>https://thiencheese.me/dns-query</code></li>
+                        <li>Hoặc trong LAN: Private DNS hostname → <code>192.168.1.100</code> (không dùng domain)</li>
                     </ul>
                 </details>
 

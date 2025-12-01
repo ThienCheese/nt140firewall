@@ -4,13 +4,14 @@
 
 | Khía cạnh | Cấu hình cũ (DuckDNS) | Cấu hình mới (Cloudflare) |
 |-----------|----------------------|---------------------------|
-| **Domain** | nt140firewall.duckdns.org | dns.nt140-dns.me |
+| **Domain** | nt140firewall.duckdns.org | thiencheese.me (custom) |
 | **TLS Management** | Caddy (Let's Encrypt DNS-01) | Cloudflare Edge |
 | **Cert Renewal** | Tự động qua Caddy + DuckDNS API | Cloudflare tự động |
 | **CGNAT Solution** | ❌ Không giải quyết được | ✅ Cloudflare Tunnel |
-| **DoH Access** | ❌ LAN only | ✅ Global |
-| **DoT Access** | ⚠️ LAN only (với Layer4) | ✅ Global (qua Tunnel) |
+| **DoH Access** | ❌ LAN only | ✅ Global (via tunnel) |
+| **DoT Access** | ⚠️ LAN only (với Layer4) | ⚠️ LAN only (no tunnel support) |
 | **Dependencies** | Caddy + DuckDNS plugin | Caddy + cloudflared |
+| **Static IP** | DHCP Reservation (router) | Netplan (server-side) |
 | **Complexity** | Trung bình | Thấp hơn |
 | **Cost** | Free | Free |
 
@@ -156,6 +157,7 @@ Client LAN → Router (với Static DNS)
 - Cloudflare quản lý TLS (99.99% uptime)
 - Không phụ thuộc vào DuckDNS API
 - Auto-reconnect tunnel khi mất kết nối
+- Static IP qua Netplan (không phụ thuộc DHCP router)
 
 ### 3. **Bảo mật tốt hơn**
 - DDoS protection từ Cloudflare
@@ -209,15 +211,15 @@ docker compose logs -f
 ```
 
 ### Bước 5: Verify
-- [ ] Test DoH: `curl https://dns.nt140-dns.me/dns-query?name=google.com`
-- [ ] Test Dashboard: Browse to `https://dns.nt140-dns.me`
-- [ ] Test DoT: `kdig @dot.nt140-dns.me +tls google.com`
-- [ ] Test from mobile device
+- [ ] Test DoH: `curl -H 'accept: application/dns-json' 'https://thiencheese.me/dns-query?name=google.com&type=A'`
+- [ ] Test Dashboard: Browse to `https://thiencheese.me`
+- [ ] Test Plain DNS (LAN): `dig @192.168.1.100 google.com`
+- [ ] Test DoH from mobile (Intra app): Configure custom URL
 
 ### Bước 6: Update clients
-- [ ] Update DoH endpoint trên các thiết bị
-- [ ] Update DoT hostname
-- [ ] Test kết nối từ WAN
+- [ ] Router DHCP: Point DNS to `192.168.1.100`
+- [ ] Mobile devices: Install Intra app → Custom DoH URL
+- [ ] Test từ LAN và WAN (4G/5G)
 
 ---
 

@@ -19,11 +19,12 @@ Hệ thống DNS Firewall tự host tại nhà, giúp chặn quảng cáo, mã �
 
 ### Tính năng chính
 - ✅ **Chặn quảng cáo toàn mạng**: Mọi thiết bị trong nhà được bảo vệ tự động
-- ✅ **DNS mã hóa (DoH/DoT)**: Bảo vệ quyền riêng tư, chống nghe lén
+- ✅ **DNS mã hóa (DoH)**: Bảo vệ quyền riêng tư, chống nghe lén
 - ✅ **Dashboard quản lý**: Xem thống kê, logs truy vấn DNS theo thời gian thực
 - ✅ **Truy cập từ xa**: Dùng DNS Firewall ngay cả khi không ở nhà (qua 4G/5G)
 - ✅ **Tự động cập nhật blacklist**: 24 giờ cập nhật một lần từ nguồn uy tín
 - ✅ **Hoạt động với CGNAT**: Không cần IP tĩnh, không mở port router
+- ✅ **Setup đơn giản**: Cấu hình static IP qua Netplan, không cần config router
 
 ### Sơ đồ kiến trúc
 ```
@@ -130,27 +131,23 @@ Internet (WAN)                    Home Network (LAN)
    - **LƯU CẨN THẬN**, sẽ dùng ở bước sau
    - Ví dụ: `eyJhIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY...`
 
-4. **Cấu hình Public Hostnames** (bước quan trọng):
+4. **Cấu hình Public Hostname** (bước quan trọng):
    
-   **a) Hostname cho DoH và Dashboard:**
+   **Hostname cho DoH và Dashboard:**
    - Click **"Add a public hostname"**
-   - **Subdomain**: `dns` (hoặc để trống nếu dùng root domain)
+   - **Subdomain**: Để trống (dùng root domain) hoặc `dns`
    - **Domain**: Chọn domain của bạn
    - **Service Type**: `HTTP`
    - **URL**: `caddy:80`
    - Click **Save hostname**
-   
-   **b) Hostname cho DoT:**
-   - Click **"Add a public hostname"** lần nữa
-   - **Subdomain**: `dot`
-   - **Domain**: Chọn domain của bạn
-   - **Service Type**: `TCP`
-   - **URL**: `caddy:853`
-   - Click **Save hostname**
 
-**✅ Kết quả**: Bạn có 2 endpoint:
-- `https://dns.yourdomain.com` (DoH + Dashboard)
-- `dot.yourdomain.com` (DoT)
+**✅ Kết quả**: Bạn có endpoint:
+- `https://yourdomain.com` hoặc `https://dns.yourdomain.com` (DoH + Dashboard)
+
+**⚠️ Lưu ý về DoT (DNS-over-TLS):**
+- DoT qua Cloudflare Tunnel **KHÔNG khả thi** do giới hạn kỹ thuật
+- DoT chỉ hoạt động trong mạng LAN (direct connection)
+- Khuyến nghị: Dùng **DoH** cho mọi thiết bị (hỗ trợ tốt hơn, hoạt động mọi nơi)
 
 ---
 
@@ -166,16 +163,58 @@ Internet (WAN)                    Home Network (LAN)
    - Disk: 10GB
    - Network: **Bridge** (để có IP trên cùng mạng LAN)
 3. Cài đặt Ubuntu (chọn OpenSSH server khi được hỏi)
-4. Sau khi cài xong, lấy địa chỉ IP:
-   ```bash
-   ip addr show
-   ```
-   - Tìm dòng có `inet 192.168.x.x` (không phải 127.0.0.1)
-   - **GHI NHỚ** IP này (ví dụ: `192.168.1.100`)
+4. **Cấu hình Static IP qua Netplan** (quan trọng):
+
+```bash
+# Kiểm tra interface name
+ip addr show
+
+# Tìm interface (thường là eth0, ens33, enp0s3...)
+# Ví dụ: inet 192.168.1.xxx/24 brd 192.168.1.255 scope global dynamic enp0s3
+
+# Mở file cấu hình Netplan
+sudo nano /etc/netplan/00-installer-config.yaml
+```
+
+Thay thế nội dung bằng (chỉnh sửa cho phù hợp với mạng của bạn):
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:  # Thay bằng interface name của bạn
+      dhcp4: no
+      addresses:
+        - 192.168.1.100/24  # IP tĩnh bạn muốn đặt
+      routes:
+        - to: default
+          via: 192.168.1.1  # IP router/gateway
+      nameservers:
+        addresses:
+          - 1.1.1.1  # DNS tạm thời (sau này sẽ dùng chính server này)
+          - 8.8.8.8
+```
+
+Áp dụng cấu hình:
+
+```bash
+# Kiểm tra cú pháp
+sudo netplan try
+
+# Nếu OK (kết nối SSH không bị mất), apply
+sudo netplan apply
+
+# Kiểm tra lại IP
+ip addr show
+```
+
+**✅ Kết quả**: Server có IP tĩnh `192.168.1.100`, không cần cấu hình DHCP reservation trên router.
 
 **Nếu dùng Raspberry Pi / máy vật lý:**
 - Cài Ubuntu Server theo hướng dẫn chính thức
 - Kết nối qua SSH từ máy tính chính
+- Làm tương tự để cấu hình static IP
 
 ### 2.2. Cài đặt Docker & Docker Compose
 
@@ -319,14 +358,13 @@ docker compose logs cloudflared
 docker compose restart cloudflared
 ```
 
-### 3.2. Xác minh Public Hostnames
+### 3.2. Xác minh Public Hostname
 
-Trong tab **Public Hostname** của tunnel, phải có 2 hostnames:
+Trong tab **Public Hostname** của tunnel, phải có:
 
 | Hostname | Service Type | URL |
 |----------|--------------|-----|
-| `dns.yourdomain.com` | HTTP | `caddy:80` |
-| `dot.yourdomain.com` | TCP | `caddy:853` |
+| `yourdomain.com` (hoặc `dns.yourdomain.com`) | HTTP | `caddy:80` |
 
 ### 3.3. Test từ Internet
 
@@ -340,67 +378,69 @@ curl -H "accept: application/dns-json" \
 **Kết quả mong đợi:** JSON response với IP của google.com
 
 **Test Dashboard:**
-- Mở trình duyệt: `https://dns.yourdomain.com`
+- Mở trình duyệt: `https://yourdomain.com`
 - Đăng nhập: username `admin`, mật khẩu là `ADMIN_PASSWORD` đã đặt
 - Xem dashboard thống kê DNS
 
-**Test DoT** (cần cài `knot-dnsutils`):
+**Test DoH từ command line:**
 ```bash
-# Ubuntu/Debian
+# Test với kdig (khuyến nghị)
 sudo apt install knot-dnsutils
+kdig @yourdomain.com +https google.com
 
-# Test DoT
-kdig @dot.yourdomain.com +tls google.com
+# Hoặc với curl (JSON format)
+curl -H 'accept: application/dns-json' \
+  'https://yourdomain.com/dns-query?name=google.com&type=A'
 ```
 
 ---
 
 ## 🔧 Bước 4: Cấu hình Router (LAN DNS)
 
-Để tất cả thiết bị trong nhà tự động dùng DNS Firewall:
+### 4.1. Cấu hình DNS trên Router (Đơn giản)
 
-### 4.1. Cấu hình DNS trên Router
-
-**Cách 1: Thay đổi DNS Server (Đơn giản nhất)**
-
-1. Đăng nhập vào router (thường là `192.168.1.1` hoặc `192.168.0.1`)
+1. **Đăng nhập vào router** (thường là `192.168.1.1` hoặc `192.168.0.1`)
 2. Tìm phần **DHCP Settings** hoặc **LAN Settings**
-3. Tìm mục **Primary DNS** hoặc **DNS Server**
-4. Đổi thành IP của server (ví dụ: `192.168.1.100`)
-5. **Secondary DNS**: Để trống hoặc `1.1.1.1` (backup)
-6. Lưu và khởi động lại router
+3. Tìm mục **Primary DNS Server**
+4. Đổi thành IP của DNS Firewall: `192.168.1.100`
+5. **Secondary DNS**: `1.1.1.1` (backup khi server offline)
+6. **Save** và **Apply** (router sẽ tự reboot)
 
-**Cách 2: DHCP Static DNS (Khuyến nghị)**
+**✅ Kết quả**: Tất cả thiết bị kết nối vào WiFi/LAN sẽ tự động dùng DNS Firewall.
 
-Trên một số router cao cấp (Asus, OpenWRT, pfSense...):
-1. Vào **DHCP Server** settings
-2. Tìm **DNS Server 1**: Đặt IP server (`192.168.1.100`)
-3. **DNS Server 2**: `1.1.1.1` (fallback)
+### 4.2. Cấu hình cho từng thiết bị (Tùy chọn)
 
-### 4.2. Đặt IP tĩnh cho Server (Quan trọng!)
+Nếu không muốn thay đổi router, có thể cấu hình trên từng thiết bị:
 
-Để IP server không đổi khi khởi động lại:
+**Windows:**
+1. Control Panel → Network → Change adapter settings
+2. Right-click WiFi/Ethernet → Properties
+3. Internet Protocol Version 4 → Properties
+4. "Use the following DNS server":
+   - Preferred: `192.168.1.100`
+   - Alternate: `1.1.1.1`
 
-1. Vào **DHCP Server** → **Address Reservation** (hoặc tên tương tự)
-2. Tìm MAC address của server
-3. Gán IP tĩnh (ví dụ: `192.168.1.100`)
-4. Lưu cấu hình
+**macOS:**
+1. System Settings → Network
+2. Chọn WiFi/Ethernet → Details
+3. DNS → Thêm `192.168.1.100`
 
-### 4.3. Split-Horizon DNS (Nâng cao - Tùy chọn)
+**Linux:**
+```bash
+# Sửa file resolv.conf
+sudo nano /etc/resolv.conf
 
-**Mục đích**: Khi ở trong nhà, thiết bị sẽ kết nối trực tiếp đến server thay vì đi qua Internet.
+# Thêm dòng
+nameserver 192.168.1.100
+nameserver 1.1.1.1
+```
 
-**Cách làm** (nếu router hỗ trợ Static DNS hoặc Host Override):
-1. Tìm mục **DNS Hostname** hoặc **Static DNS**
-2. Thêm 2 bản ghi:
-   - **Hostname**: `dns.yourdomain.com` → **IP**: `192.168.1.100`
-   - **Hostname**: `dot.yourdomain.com` → **IP**: `192.168.1.100`
-3. Lưu cấu hình
+### 4.3. Không cần cấu hình thêm!
 
-**Lợi ích:**
-- Thiết bị di động có thể dùng cùng 1 cấu hình DoT cho cả trong và ngoài nhà
-- Trong nhà: Kết nối trực tiếp (nhanh)
-- Ngoài nhà: Tự động chuyển qua Cloudflare Tunnel
+✅ **Server đã có static IP** (cấu hình qua Netplan ở Bước 2.1)  
+✅ **Router chỉ cần trỏ DNS** → Xong!  
+✅ **Không cần DHCP reservation** hay port forwarding  
+✅ **Không cần Split-Horizon DNS** (Cloudflare Tunnel tự động xử lý)
 
 ---
 
@@ -428,27 +468,40 @@ nslookup ads.google.com
 
 ### 5.2. Test từ thiết bị di động
 
-**Android:**
-1. **Cài đặt** → **Kết nối** → **Thêm mạng riêng tư (Private DNS)**
-2. Chọn **Private DNS provider hostname**
-3. Nhập: `dot.yourdomain.com`
-4. Lưu
+**Android (DoH qua Intra app - Khuyến nghị):**
+1. Tải app **Intra** từ Google Play Store (by Google Jigsaw - miễn phí)
+2. Mở Intra → **Settings** → **Select DNS-over-HTTPS Server**
+3. Chọn **Custom Server URL**
+4. Nhập: `https://yourdomain.com/dns-query`
+5. Quay lại → Bật **ON**
 
-**iOS:**
-1. **Cài đặt** → **Chung** → **VPN & Quản lý thiết bị**
-2. Tải app **DNSCloak** hoặc **1.1.1.1**
-3. Cấu hình endpoint: `https://dns.yourdomain.com/dns-query`
+**iOS (DoH qua DNSCloak):**
+1. Tải app **DNSCloak** từ App Store
+2. Mở app → **DNS Servers** → Thêm server mới
+3. URL: `https://yourdomain.com/dns-query`
+4. Protocol: **DNS-over-HTTPS**
+5. Save và Enable
+
+**Trong mạng LAN (không cần app):**
+- Thiết bị tự động dùng DNS server `192.168.1.100` (qua DHCP router)
+- Không cần cấu hình gì thêm!
 
 **Test:** Mở trình duyệt, vào các trang web có nhiều quảng cáo (ví dụ: vnexpress.net) → Quảng cáo sẽ biến mất!
 
 ### 5.3. Xem thống kê trên Dashboard
 
-1. Mở trình duyệt: `https://dns.yourdomain.com` hoặc `http://192.168.1.100:8081` (từ LAN)
+1. Mở trình duyệt: `https://yourdomain.com` hoặc `http://192.168.1.100:8081` (từ LAN)
 2. Đăng nhập với `admin` / mật khẩu đã đặt
 3. Xem:
-   - **Queries Dashboard**: Số lượng truy vấn DNS
-   - **Blocked Queries**: Số domain bị chặn
-   - **Query Logs**: Lịch sử truy vấn chi tiết
+   - **Total Queries**: Tổng số truy vấn DNS
+   - **Blocked**: Số domain bị chặn
+   - **Query Logs**: Lịch sử truy vấn real-time
+
+**📊 Các chỉ số quan trọng:**
+- Queries per minute
+- Block rate (% bị chặn)
+- Top blocked domains
+- Top queried domains
 
 ---
 
@@ -467,19 +520,25 @@ docker compose down
 docker compose up -d --build
 ```
 
-### ❌ Không kết nối được DoT/DoH từ Internet
+### ❌ Không kết nối được DoH từ Internet
 
 **Kiểm tra:**
 1. Cloudflare Tunnel status phải là **HEALTHY**
-2. Public Hostnames đã cấu hình đúng (HTTP cho DoH, TCP cho DoT)
+   ```bash
+   docker compose logs cloudflared | grep "Registered tunnel"
+   ```
+2. Public Hostname đã cấu hình đúng (HTTP → `caddy:80`)
 3. Domain đã được add vào Cloudflare và nameserver đã đổi
 
 ```bash
-# Test DNS từ server
-dig @1.1.1.1 dns.yourdomain.com
-dig @1.1.1.1 dot.yourdomain.com
+# Test DNS resolve
+dig @1.1.1.1 yourdomain.com
 
 # Phải trả về IP Cloudflare (104.x.x.x hoặc 172.x.x.x)
+
+# Test DoH endpoint
+curl -H 'accept: application/dns-json' \
+  'https://yourdomain.com/dns-query?name=google.com&type=A'
 ```
 
 ### ❌ Thiết bị trong LAN không dùng DNS Firewall
@@ -661,38 +720,44 @@ Sau khi tunnel hoạt động, bạn cần trỏ tên miền của mình đến 
 
 - **Dashboard**: Truy cập `https://your-domain.com` và đăng nhập với mật khẩu bạn đã tạo.
 - **DoH Endpoint**: `https://your-domain.com/dns-query`
-- **DoT Endpoint**: `dot.your-domain.com` (hoặc tên miền phụ bạn đã cấu hình)
+- **Plain DNS (LAN only)**: `192.168.1.100:53`
 
 #### Cấu hình cho Client
 
 Có hai cách chính để cấu hình các thiết bị của bạn sử dụng DNS Firewall:
 
-**1. Cấu hình trên từng thiết bị (Khuyên dùng cho thiết bị di động):**
-- Sử dụng các endpoint DoH/DoT ở trên để cấu hình trong cài đặt mạng của điện thoại, laptop...
-- **Ưu điểm:** Thiết bị của bạn sẽ được bảo vệ dù đang ở bất kỳ đâu (mạng nhà, 4G, Wi-Fi công cộng).
+**1. Cấu hình Router (Khuyến nghị cho mạng LAN):**
+- Đơn giản nhất: Trỏ DNS trong DHCP settings router đến `192.168.1.100`
+- **Ưu điểm:** Mọi thiết bị kết nối WiFi/LAN tự động được bảo vệ
+- **Nhược điểm:** Chỉ hoạt động trong mạng nhà
 
-**2. Cấu hình trên Router (Khuyên dùng cho mạng LAN):**
-- **Cách đơn giản:** Trong cài đặt DHCP của router, trỏ DNS server chính đến địa chỉ IP nội bộ của máy chủ Docker.
-- **Ưu điểm:** Mọi thiết bị kết nối vào mạng LAN sẽ tự động được bảo vệ mà không cần cấu hình riêng lẻ.
-- **Nhược điểm:** Chỉ hoạt động khi thiết bị đang ở trong mạng LAN.
+**2. Cấu hình app DoH (Khuyến nghị cho di động):**
+- **Android**: Cài app **Intra** → Custom URL: `https://your-domain.com/dns-query`
+- **iOS**: Cài app **DNSCloak** → Custom DoH server
+- **Ưu điểm:** Bảo vệ mọi nơi (4G/5G, WiFi công cộng)
+- **Nhược điểm:** Cần cài app riêng
 
-#### Cấu hình nâng cao: Sử dụng tên miền thống nhất cho LAN và WAN
+#### Tóm tắt Setup
 
-Để các thiết bị (đặc biệt là di động) có thể sử dụng **cùng một tên miền** mã hóa (ví dụ: `your-domain.com`) một cách liền mạch dù ở trong hay ngoài mạng LAN, bạn nên cấu hình router để thực hiện "Split-horizon DNS".
+**✅ Đã hoàn thành:**
+1. **Server có static IP** `192.168.1.100` (qua Netplan)
+2. **Router DHCP** trỏ DNS đến `192.168.1.100`
+3. **Cloudflare Tunnel** cho phép truy cập từ xa qua DoH
+4. **Dashboard** bảo vệ bằng Basic Authentication
 
-**Mục tiêu:** Khi thiết bị ở trong mạng LAN, router sẽ phân giải `your-domain.com` thành địa chỉ IP nội bộ (`192.168.1.100`), thay vì địa chỉ IP công cộng.
+**🎯 Cách sử dụng:**
 
-**Cách thực hiện trên router của bạn (ví dụ):**
+| Vị trí | Cấu hình | Giao thức |
+|--------|----------|-----------|
+| **Trong nhà (LAN)** | Tự động (qua DHCP router) | Plain DNS (port 53) |
+| **Ra ngoài (4G/5G)** | App Intra/DNSCloak | DoH (HTTPS) |
+| **Quản trị** | `https://yourdomain.com` | HTTPS + Auth |
 
-1.  **Đặt IP tĩnh cho máy chủ:** Trong cài đặt DHCP của router, hãy đặt một địa chỉ IP tĩnh (DHCP Reservation) cho máy chủ đang chạy Docker (ví dụ: `192.168.1.100`).
-2.  **Thêm bản ghi DNS tĩnh:** Tìm đến mục "DNS Hostname", "Static DNS", hoặc một mục tương tự trên router và thêm một bản ghi mới:
-    *   **Hostname:** `your-domain.com` (và `dot.your-domain.com` nếu có)
-    *   **IP Address:** `192.168.1.100`
-
-**Lợi ích:**
-- Một thiết bị di động có thể dùng cấu hình DoT `dot.your-domain.com` duy nhất.
-- Khi ở nhà, router sẽ trả về IP nội bộ, kết nối sẽ nhanh và không đi ra ngoài Internet.
-- Khi ra ngoài, DNS công cộng sẽ trả về IP của Cloudflare, và kết nối sẽ đi qua Tunnel. Trải nghiệm hoàn toàn liền mạch!
+**💡 Không cần:**
+- ❌ Cấu hình DHCP reservation trên router
+- ❌ Cấu hình Split-Horizon DNS
+- ❌ Mở port forwarding
+- ❌ IP công khai tĩnh
 
 ## 🔧 Tùy chỉnh
 

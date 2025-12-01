@@ -66,24 +66,23 @@
                         │    CLOUDFLARE EDGE NETWORK              │
                         │    (thiencheese.me)                     │
                         │                                          │
-┌──────────────────────▶│  Public Hostnames:                      │
-│                       │  1. thiencheese.me → http://caddy:80    │
-│  ┌────────────────┐  │     (DoH + Dashboard)                   │
-│  │  Client 1      │  │  2. thiencheese.me → tcp://caddy:853    │
-│  │  (Anywhere)    │  │     (DoT)                               │
-│  │                │  │                                          │
-│  │  DoH Endpoint: │  │  Services:                              │
-│  │  thiencheese   │  │  - TLS Termination                      │
-│  │  .me/dns-query │  │  - DDoS Protection                      │
-│  └────────────────┘  │  - WAF                                  │
-│                       │  - Rate Limiting                        │
-│  ┌────────────────┐  └──────────┬──────────────────────────────┘
-│  │  Client 2      │             │ Cloudflare Tunnel (Encrypted)
-│  │  (4G/5G)       │             │ Token: eyJh...
-│  │                │─────────────┘
-│  │  DoT:          │             │
-│  │  thiencheese   │             │ Outbound only
-│  │  .me           │             │ (No port forward needed)
+┌──────────────────────▶│  Public Hostname:                       │
+│                       │  - thiencheese.me → http://caddy:80     │
+│  ┌────────────────┐  │    (DoH + Dashboard)                    │
+│  │  Client 1      │  │                                          │
+│  │  (Anywhere)    │  │  Services:                              │
+│  │                │  │  - TLS Termination                      │
+│  │  DoH Endpoint: │  │  - DDoS Protection                      │
+│  │  thiencheese   │  │  - WAF                                  │
+│  │  .me/dns-query │  │  - Rate Limiting                        │
+│  └────────────────┘  └──────────┬──────────────────────────────┘
+│                                  │ Cloudflare Tunnel (Encrypted)
+│  ┌────────────────┐             │ Token: eyJh...
+│  │  Client 2      │             │
+│  │  (4G/5G)       │─────────────┘ Outbound only
+│  │                │             │ (No port forward needed)
+│  │  DoH via Intra │             │
+│  │  app           │             │
 │  └────────────────┘             │
 │                                  │
 │  ┌────────────────┐             │
@@ -122,11 +121,6 @@
                                    │  │  │ - / → Dashboard  │   │  │
                                    │  │  │   (Basic Auth)   │   │  │
                                    │  │  │                  │   │  │
-                                   │  │  │ Port 853:        │   │  │
-                                   │  │  │ - TCP proxy →    │   │  │
-                                   │  │  │   dns_server:    │   │  │
-                                   │  │  │   8053           │   │  │
-                                   │  │  │                  │   │  │
                                    │  │  │ Port 8081:       │   │  │
                                    │  │  │ - LAN Setup Page │◄──┼──┼─ LAN Clients
                                    │  │  └────────┬─────────┘   │  │   (192.168.1.x)
@@ -136,7 +130,6 @@
                                    │  │  │ (Python/FastAPI) │   │  │
                                    │  │  │                  │   │  │
                                    │  │  │ Port 8080: DoH   │   │  │
-                                   │  │  │ Port 8053: DoT   │   │  │
                                    │  │  │ Port 8000: API   │   │  │
                                    │  │  │ Port 53: DNS ────┼───┼──┼─ LAN Direct
                                    │  │  │   (UDP/TCP)      │   │  │   DNS (Port 53)
@@ -157,15 +150,17 @@
 | Component | Setting | Value | Status |
 |-----------|---------|-------|--------|
 | **Domain** | Custom Domain | `thiencheese.me` | ✅ Active |
-| **Cloudflare Tunnel** | Public Hostname 1 | HTTP → `caddy:80` | ✅ Configured |
-| **Cloudflare Tunnel** | Public Hostname 2 | TCP → `caddy:853` | ✅ Configured |
+| **Cloudflare Tunnel** | Public Hostname | HTTP → `caddy:80` | ✅ Configured |
 | **Caddy** | DoH Endpoint | Port 80/443 → `dns_server:8080` | ✅ Verified |
-| **Caddy** | DoT Endpoint | Port 853 → `dns_server:8053` | ✅ Verified |
 | **Caddy** | Dashboard | Port 80/443 → Static files + Auth | ✅ Verified |
 | **Python DNS** | DoH Handler | Port 8080 | ✅ Listening |
-| **Python DNS** | DoT Handler | Port 8053 | ✅ Listening |
 | **Python DNS** | API Server | Port 8000 | ✅ Listening |
 | **Python DNS** | Plain DNS | Port 53 (UDP/TCP) | ✅ Exposed to LAN |
+
+**⚠️ Note về DoT (DNS-over-TLS):**
+- DoT qua Cloudflare Tunnel **không khả thi** do giới hạn kỹ thuật
+- Port 853 listener (`dns_server:8053`) chỉ hoạt động trong LAN
+- Khuyến nghị: **Sử dụng DoH** cho tất cả truy cập từ xa
 
 **Benefits:**
 - ✅ Free, unlimited bandwidth
@@ -175,6 +170,7 @@
 - ✅ Zero maintenance
 - ✅ Works with CGNAT (no port forwarding needed)
 - ✅ No DuckDNS dependency (using custom domain)
+- ✅ Simple setup with static IP via Netplan (no router DHCP config needed)
 
 ---
 
@@ -456,53 +452,43 @@ Client Device
 Website (or sinkhole page if blocked)
 ```
 
-### DoT Query Flow (with Cloudflare Tunnel) - VERIFIED ✅
+### DoT Query Flow - ⚠️ LAN ONLY (Not via Cloudflare Tunnel)
 
 ```
-Client Device (Mobile with Private DNS)
+Client Device (Mobile/Desktop in LAN)
     │
-    │ 1. TCP connection to thiencheese.me:853
-    │    TLS handshake (DNS-over-TLS)
-    │    SNI: thiencheese.me
+    │ 1. DNS-over-TLS query to 192.168.1.100:853
+    │    TLS handshake (self-signed cert or no TLS)
     ▼
-Cloudflare Edge
+Home: DNS Server Python (Port 8053)
     │
-    │ 2. TLS Termination
-    │    Extract DNS query from TLS stream
+    │ 2. DoT handler receives TCP+TLS stream
+    │    Parse DNS query, extract domain
+    │
+    │ 3. Check blacklist
     ▼
-Cloudflare Tunnel (TCP mode)
+Is domain blocked?
     │
-    │ 3. Forward TCP stream to home
-    │    (Already decrypted, plain TCP)
-    ▼
-Home: Cloudflared Container
+    ├─ YES → 4a. Return sinkhole IP (127.0.0.1)
     │
-    │ 4. Forward TCP to caddy:853
-    ▼
-Home: Caddy Container (Port 853)
-    │
-    │ 5. TCP reverse proxy
-    │    No TLS re-encryption needed
-    │    Forward to dns_server:8053
-    ▼
-Home: DNS Server (Python - Port 8053)
-    │
-    │ 6. DoT handler receives TCP stream
-    │    Parse DNS query
-    │    Extract domain name
-    │
-    │ 7. Check blacklist (same as DoH)
-    ▼
-[Same filtering logic as DoH flow]
-    │
-    │ 8. Return DNS response over TCP
+    └─ NO → 4b. Forward to Upstream DNS (1.1.1.1)
+        │        Receive real IP
+        ▼
+    5. Encrypt response with TLS
     ▼
 Client Device
     │
-    │ 9. Use resolved IP
+    │ 6. Decrypt DNS response
+    │    Use resolved IP
     ▼
 Connect to website
 ```
+
+**⚠️ Important Limitations:**
+- DoT **ONLY works in LAN** (direct connection to server)
+- Cloudflare Tunnel **does NOT support** DoT over TCP:853
+- **Recommended**: Use **DoH** for all remote access (WAN)
+- **Android Private DNS**: Will NOT work remotely (only in LAN)
 
 ### Plain DNS Query Flow (LAN - Direct) - VERIFIED ✅
 
