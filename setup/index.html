@@ -119,92 +119,290 @@
 <body>
     <main>
         <header>
-            <h1>Trang Hướng dẫn Kết nối</h1>
-            <p>Sử dụng các phương pháp bên dưới để kết nối thiết bị của bạn.</p>
+            <h1>🛡️ DNS Firewall - Hướng dẫn Kết nối</h1>
+            <p>Chặn quảng cáo và bảo vệ quyền riêng tư cho toàn bộ thiết bị</p>
         </header>
 
         <div class="content">
             <!-- Tên miền của bạn (để tham khảo) -->
-            <p style="text-align: center;">Tên miền Firewall (Hostname): <span class="hostname">nt140firewall.duckdns.org</span></p>
+            <p style="text-align: center; background: #e8f4f8; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                <strong>🌐 Tên miền Firewall:</strong> <span class="hostname">thiencheese.me</span><br>
+                <small style="color: #666;">✅ Đã triển khai với Cloudflare Tunnel | ✅ Hỗ trợ DoH/DoT</small>
+            </p>
 
-            <h2>Thiết bị Di động (Nhanh nhất)</h2>
+            <h2>📱 Thiết bị Di động (Nhanh nhất - Khuyên dùng)</h2>
             <div class="device-section">
-                <!-- Hướng dẫn cho iOS / macOS -->
-                <div class="device">
-                    <h3>iOS & macOS (iPhone / iPad / Mac)</h3>
-                    <p>Quét mã QR bằng Camera của bạn để tải về cấu hình bảo mật (DoH).</p>
-                    <div class="qr-code">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://nt140firewall.duckdns.org/clients/apple_ios_mac/DoH.mobileconfig" alt="QR Code for iOS/macOS">
-                    </div>
-                    <ol>
-                        <li>Mở Camera và quét mã QR ở trên.</li>
-                        <li>Nhấn vào thông báo "Đã tải về hồ sơ".</li>
-                        <li>Vào <strong>Cài đặt (Settings)</strong> -> <strong>Đã tải về hồ sơ (Profile Downloaded)</strong>.</li>
-                        <li>Nhấn <strong>Cài đặt (Install)</strong> ở góc trên bên phải.</li>
-                    </ol>
-                </div>
-
                 <!-- Hướng dẫn cho Android -->
                 <div class="device">
-                    <h3>Android (9+)</h3>
-                    <p>Quét mã QR để sao chép tên miền, sau đó dán vào cài đặt DNS.</p>
+                    <h3>🤖 Android (9+)</h3>
+                    <p><strong>✅ Phương pháp tốt nhất:</strong> Cấu hình Private DNS với DoT (DNS-over-TLS)</p>
                     <div class="qr-code">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=nt140firewall.duckdns.org" alt="QR Code for Android">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=thiencheese.me" alt="QR Code for Android">
                     </div>
                     <ol>
-                        <li>Mở Camera và quét mã QR (hoặc dùng Google Lens).</li>
-                        <li>Sao chép (Copy) đoạn text <code>nt140firewall.duckdns.org</code>.</li>
-                        <li>Vào <strong>Cài đặt</strong> -> <strong>Kết nối</strong> -> <strong>DNS riêng tư (Private DNS)</strong>.</li>
-                        <li>Chọn <strong>"Tên host của nhà cung cấp DNS riêng tư"</strong>.</li>
-                        <li>Dán (Paste) tên miền đã sao chép vào và nhấn <strong>Lưu</strong>.</li>
+                        <li>Quét mã QR bằng Camera hoặc Google Lens.</li>
+                        <li>Sao chép (Copy) text: <code>thiencheese.me</code></li>
+                        <li>Vào <strong>Cài đặt</strong> → <strong>Kết nối</strong> → <strong>DNS riêng tư</strong></li>
+                        <li>Chọn <strong>"Tên máy chủ của nhà cung cấp DNS riêng tư"</strong></li>
+                        <li>Dán <code>thiencheese.me</code> và nhấn <strong>Lưu</strong></li>
                     </ol>
+                    <p style="background: #d4edda; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                        ✅ <strong>Ưu điểm:</strong> Mã hóa toàn bộ DNS, hoạt động dù ở nhà hay ra ngoài (4G/5G/WiFi công cộng)
+                    </p>
+                </div>
+
+                <!-- Hướng dẫn cho iOS / macOS -->
+                <div class="device">
+                    <h3>🍎 iOS & macOS</h3>
+                    <p><strong>Cách 1:</strong> Dùng app hỗ trợ DoH (DNSCloak, 1.1.1.1)</p>
+                    <ol>
+                        <li>Tải app <strong>DNSCloak</strong> (miễn phí) từ App Store</li>
+                        <li>Mở app → <strong>DNS Servers</strong> → <strong>Add Server</strong></li>
+                        <li>Chọn <strong>DNS-over-HTTPS</strong></li>
+                        <li>Nhập URL: <code>https://thiencheese.me/dns-query</code></li>
+                        <li>Nhấn <strong>Save</strong> và kích hoạt</li>
+                    </ol>
+                    
+                    <p><strong>Cách 2:</strong> Tải profile cấu hình (yêu cầu file .mobileconfig)</p>
+                    <div class="qr-code">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://thiencheese.me/clients/apple_ios_mac/DoH.mobileconfig" alt="QR Code for iOS/macOS">
+                    </div>
+                    <ol>
+                        <li>Quét mã QR để tải profile (nếu đã tạo file .mobileconfig)</li>
+                        <li>Vào <strong>Settings</strong> → <strong>Profile Downloaded</strong></li>
+                        <li>Nhấn <strong>Install</strong> và xác nhận</li>
+                    </ol>
+                    <p style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                        ⚠️ <strong>Lưu ý:</strong> iOS không hỗ trợ DoT native, cần dùng app hoặc profile
+                    </p>
                 </div>
             </div>
 
-            <h2>Máy tính (Desktop)</h2>
-            <p>Sử dụng các hướng dẫn bên dưới để cấu hình máy tính của bạn.</p>
+            <h2>💻 Máy tính (Desktop/Laptop)</h2>
+            <p style="background: #e3f2fd; padding: 0.8rem; border-radius: 6px; margin-bottom: 1rem;">
+                <strong>💡 Gợi ý:</strong> Nếu máy tính <strong>chỉ dùng tại nhà</strong>, cấu hình DNS LAN (192.168.1.100) để có tốc độ nhanh nhất. 
+                Nếu <strong>thường xuyên mang ra ngoài</strong> (laptop), dùng DoH để được bảo vệ ở mọi nơi.
+            </p>
             
             <!-- Hướng dẫn cho Windows -->
             <details>
-                <summary>Windows (10 & 11)</summary>
-                <p>Cách dễ nhất là cấu hình thủ công qua Cài đặt.</p>
+                <summary>🪟 Windows (10 & 11)</summary>
+                
+                <h4>Cách 1: DNS LAN (Chỉ hoạt động tại nhà - Nhanh nhất ⚡)</h4>
                 <ol>
-                    <li>Mở <strong>Settings</strong> -> <strong>Network & Internet</strong>.</li>
-                    <li>Nhấp vào <strong>Wi-Fi</strong> (hoặc <strong>Ethernet</strong>).</li>
-                    <li>Nhấp vào <strong>Hardware properties</strong> (Thuộc tính phần cứng).</li>
-                    <li>Tìm <strong>"DNS server assignment"</strong> (Gán máy chủ DNS) và nhấp <strong>Edit</strong>.</li>
-                    <li>Chọn <strong>"Manual" (Thủ công)</strong>.</li>
-                    <li>Bật <strong>IPv4</strong>.</li>
-                    <li>Trong ô <strong>"Preferred DNS" (DNS Ưu tiên)</strong>, nhập IP máy chủ của bạn: <code>192.168.1.100</code></li>
-                    <li>Nhấn <strong>Save</strong>.</li>
+                    <li>Mở <strong>Settings</strong> → <strong>Network & Internet</strong></li>
+                    <li>Nhấp vào <strong>Wi-Fi</strong> (hoặc <strong>Ethernet</strong>)</li>
+                    <li>Nhấp vào <strong>Hardware properties</strong></li>
+                    <li>Tìm <strong>"DNS server assignment"</strong> và nhấp <strong>Edit</strong></li>
+                    <li>Chọn <strong>"Manual"</strong> và bật <strong>IPv4</strong></li>
+                    <li>Trong ô <strong>"Preferred DNS"</strong>, nhập: <code>192.168.1.100</code></li>
+                    <li>Để trống <strong>"Alternate DNS"</strong> hoặc nhập: <code>1.1.1.1</code> (backup)</li>
+                    <li>Nhấn <strong>Save</strong></li>
                 </ol>
-                <p><strong>Cách khác (Dùng script):</strong> Tải và chạy các script PowerShell này (Run as Administrator).</p>
+                <p style="background: #d4edda; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                    ✅ <strong>Latency:</strong> ~2-5ms | <strong>Encryption:</strong> None (LAN) | <strong>Coverage:</strong> Home only
+                </p>
+
+                <h4>Cách 2: DNS-over-HTTPS (Hoạt động mọi nơi - Laptop 🔒)</h4>
+                <p><strong>Windows 11 only:</strong></p>
+                <ol>
+                    <li>Mở <strong>Settings</strong> → <strong>Network & Internet</strong> → <strong>Ethernet/Wi-Fi</strong></li>
+                    <li>Click <strong>Hardware properties</strong></li>
+                    <li>Bật <strong>"Use secure DNS (DNS over HTTPS)"</strong></li>
+                    <li>Chọn <strong>"Manual"</strong></li>
+                    <li>Nhập: <code>https://thiencheese.me/dns-query</code></li>
+                    <li>Nhấn <strong>Save</strong></li>
+                </ol>
+                
+                <p><strong>Hoặc dùng Browser (Chrome/Firefox):</strong></p>
                 <ul>
-                    <li><a href="https://nt140firewall.duckdns.org/clients/windows/connect.ps1" download>Kết nối DNS LAN</a> (Chỉ dùng tại nhà)</li>
-                    <li><a href="https://nt140firewall.duckdns.org/clients/windows/connect_doh.ps1" download>Kết nối DoH</a> (Dùng cho laptop)</li>
+                    <li><strong>Chrome:</strong> Settings → Security → Use secure DNS → Custom → <code>https://thiencheese.me/dns-query</code></li>
+                    <li><strong>Firefox:</strong> Settings → Network Settings → Enable DNS over HTTPS → Custom → <code>https://thiencheese.me/dns-query</code></li>
+                </ul>
+                <p style="background: #d4edda; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                    ✅ <strong>Latency:</strong> ~50-100ms | <strong>Encryption:</strong> TLS 1.3 | <strong>Coverage:</strong> Global
+                </p>
+
+                <h4>Cách 3: Script tự động (Chỉ LAN)</h4>
+                <p>Tải và chạy script PowerShell (Run as Administrator):</p>
+                <ul>
+                    <li><a href="/clients/windows/connect.ps1" download>📥 connect.ps1</a> - Cấu hình DNS LAN tự động</li>
+                    <li><a href="/clients/windows/disconnect.ps1" download>📥 disconnect.ps1</a> - Khôi phục DNS mặc định</li>
                 </ul>
             </details>
 
             <!-- Hướng dẫn cho Linux -->
             <details>
-                <summary>Linux (Ubuntu/Fedora/GNOME)</summary>
-                <p>Các script Linux không đáng tin cậy. Cách tốt nhất là cấu hình thủ công qua Giao diện (GUI).</p>
+                <summary>🐧 Linux (Ubuntu/Debian/Fedora)</summary>
+                
+                <h4>Cách 1: GUI (GNOME/KDE) - DNS LAN</h4>
                 <ol>
-                    <li>Mở <strong>Settings (Cài đặt)</strong>.</li>
-                    <li>Đi đến <strong>Network (Mạng)</strong> hoặc <strong>Wi-Fi</strong>.</li>
-                    <li>Nhấp vào biểu tượng bánh răng (⚙️) bên cạnh kết nối của bạn.</li>
-                    <li>Chuyển sang tab <strong>"IPv4"</strong>.</li>
-                    <li>Tắt <strong>"Automatic" (Tự động)</strong> cho mục DNS.</li>
-                    <li>Trong hộp thoại <strong>"DNS Servers" (Máy chủ DNS)</strong>, nhập IP máy chủ của bạn: <code>192.168.1.100</code></li>
-                    <li>Tắt <strong>IPv6</strong> (để tránh rò rỉ DNS).</li>
-                    <li>Nhấn <strong>Apply (Áp dụng)</strong>.</li>
-                    <li>Tắt và Bật lại Wi-Fi/Mạng để thay đổi có hiệu lực.</li>
+                    <li>Mở <strong>Settings</strong> → <strong>Network</strong></li>
+                    <li>Nhấp vào biểu tượng ⚙️ bên cạnh kết nối hiện tại</li>
+                    <li>Chuyển sang tab <strong>"IPv4"</strong></li>
+                    <li>Tắt <strong>"Automatic"</strong> cho DNS</li>
+                    <li>Nhập DNS Servers: <code>192.168.1.100</code></li>
+                    <li>(Tùy chọn) Tắt <strong>IPv6</strong> để tránh DNS leak</li>
+                    <li>Nhấn <strong>Apply</strong></li>
+                    <li>Restart network: <code>sudo systemctl restart NetworkManager</code></li>
                 </ol>
+
+                <h4>Cách 2: systemd-resolved (DNS-over-TLS)</h4>
+                <pre style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;">
+<code># Edit /etc/systemd/resolved.conf
+sudo nano /etc/systemd/resolved.conf
+
+# Add these lines:
+[Resolve]
+DNS=1.1.1.1
+DNSOverTLS=yes
+Domains=~.
+
+# Restart service
+sudo systemctl restart systemd-resolved
+
+# Verify
+resolvectl status</code></pre>
+                <p style="background: #fff3cd; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                    ⚠️ <strong>Lưu ý:</strong> systemd-resolved không hỗ trợ custom DoT hostname, cần dùng <code>stubby</code> hoặc <code>dnscrypt-proxy</code>
+                </p>
+
+                <h4>Cách 3: Command line (nhanh)</h4>
+                <pre style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;">
+<code># Set DNS for current connection (temporary)
+nmcli connection modify "Wi-Fi" ipv4.dns "192.168.1.100"
+nmcli connection down "Wi-Fi" && nmcli connection up "Wi-Fi"
+
+# Verify
+nslookup google.com</code></pre>
+            </details>
+
+            <!-- Hướng dẫn cho macOS -->
+            <details>
+                <summary>🍎 macOS</summary>
+                
+                <h4>Cách 1: System Preferences - DNS LAN</h4>
+                <ol>
+                    <li>Mở <strong>System Preferences</strong> → <strong>Network</strong></li>
+                    <li>Chọn kết nối hiện tại (Wi-Fi/Ethernet)</li>
+                    <li>Nhấn <strong>Advanced...</strong></li>
+                    <li>Chuyển sang tab <strong>DNS</strong></li>
+                    <li>Nhấn <strong>+</strong> và thêm: <code>192.168.1.100</code></li>
+                    <li>Nhấn <strong>OK</strong> và <strong>Apply</strong></li>
+                </ol>
+
+                <h4>Cách 2: Terminal (nhanh)</h4>
+                <pre style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 6px; overflow-x: auto;">
+<code># Get network service name
+networksetup -listallnetworkservices
+
+# Set DNS (replace "Wi-Fi" with your service name)
+sudo networksetup -setdnsservers Wi-Fi 192.168.1.100
+
+# Verify
+scutil --dns</code></pre>
+
+                <h4>Cách 3: DNS Profile (DoH/DoT)</h4>
+                <p>Cài đặt app <strong>DNSCloak</strong> hoặc tạo Configuration Profile (.mobileconfig) với DoH endpoint:</p>
+                <code>https://thiencheese.me/dns-query</code>
             </details>
         </div>
 
+            <h2>🧪 Kiểm tra Kết nối</h2>
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #28a745;">
+                <h3 style="margin-top: 0;">Sau khi cấu hình xong:</h3>
+                
+                <h4>1️⃣ Kiểm tra DNS đang dùng</h4>
+                <ul>
+                    <li><strong>Windows:</strong> Mở CMD, gõ: <code>nslookup google.com</code></li>
+                    <li><strong>Linux/Mac:</strong> Mở Terminal, gõ: <code>dig google.com</code></li>
+                    <li>Xem dòng <strong>"Server:"</strong> phải là <code>192.168.1.100</code> (LAN) hoặc <code>thiencheese.me</code> (WAN)</li>
+                </ul>
+
+                <h4>2️⃣ Test chặn quảng cáo</h4>
+                <ul>
+                    <li>Thử truy vấn domain quảng cáo: <code>nslookup ads.google.com</code></li>
+                    <li>Phải trả về IP <code>127.0.0.1</code> (bị chặn) ✅</li>
+                </ul>
+
+                <h4>3️⃣ Test DoH Endpoint (từ browser)</h4>
+                <ul>
+                    <li>Mở link: <a href="https://thiencheese.me/dns-query?name=google.com&type=A" target="_blank">https://thiencheese.me/dns-query?name=google.com&type=A</a></li>
+                    <li>Phải thấy JSON response với IP của Google ✅</li>
+                </ul>
+
+                <h4>4️⃣ Truy cập Dashboard</h4>
+                <ul>
+                    <li>URL: <a href="https://thiencheese.me" target="_blank" style="font-weight: bold; color: #2980b9;">https://thiencheese.me</a></li>
+                    <li>Username: <code>admin</code></li>
+                    <li>Password: (Xem trong file .env của bạn)</li>
+                    <li>Xem thống kê: Tổng queries, Blocked queries, Query logs</li>
+                </ul>
+            </div>
+
+            <h2>📚 Tài nguyên hữu ích</h2>
+            <div style="background: #fff3cd; padding: 1.5rem; border-radius: 8px;">
+                <ul style="margin: 0;">
+                    <li>📖 <a href="https://github.com/ThienCheese/test/blob/main/README.md" target="_blank">README.md</a> - Hướng dẫn triển khai đầy đủ</li>
+                    <li>🏗️ <a href="https://github.com/ThienCheese/test/blob/main/docs/ARCHITECTURE.md" target="_blank">ARCHITECTURE.md</a> - Kiến trúc hệ thống chi tiết</li>
+                    <li>📊 <a href="https://github.com/ThienCheese/test/blob/main/docs/REPORT.md" target="_blank">REPORT.md</a> - Báo cáo khoa học</li>
+                    <li>🛠️ <a href="https://github.com/ThienCheese/test" target="_blank">GitHub Repository</a> - Source code</li>
+                </ul>
+            </div>
+
+            <h2>❓ Gặp vấn đề?</h2>
+            <div style="background: #f8d7da; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #dc3545;">
+                <h4 style="margin-top: 0;">Các vấn đề thường gặp:</h4>
+                
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; font-weight: bold;">❌ Không kết nối được DNS</summary>
+                    <ul>
+                        <li>Kiểm tra Docker containers có chạy không: <code>docker compose ps</code></li>
+                        <li>Xem logs: <code>docker compose logs -f</code></li>
+                        <li>Restart: <code>docker compose restart</code></li>
+                    </ul>
+                </details>
+
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; font-weight: bold;">❌ DoT/DoH không hoạt động từ WAN</summary>
+                    <ul>
+                        <li>Kiểm tra Cloudflare Tunnel status: Vào Zero Trust Dashboard</li>
+                        <li>Xem logs cloudflared: <code>docker compose logs cloudflared</code></li>
+                        <li>Verify Public Hostnames đã cấu hình đúng (HTTP + TCP)</li>
+                    </ul>
+                </details>
+
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; font-weight: bold;">❌ Dashboard yêu cầu login nhưng không vào được</summary>
+                    <ul>
+                        <li>Username luôn là: <code>admin</code></li>
+                        <li>Password: Kiểm tra <code>ADMIN_PASSWORD</code> trong file <code>.env</code></li>
+                        <li>Nếu quên password: Tạo hash mới với: <code>docker run --rm caddy:latest caddy hash-password</code></li>
+                    </ul>
+                </details>
+
+                <details style="margin-top: 1rem;">
+                    <summary style="cursor: pointer; font-weight: bold;">❌ Không chặn được quảng cáo</summary>
+                    <ul>
+                        <li>Kiểm tra blacklist đã tải: <code>docker compose exec dns_server ls -lh /app/data/blacklist.txt</code></li>
+                        <li>Force update blacklist: Vào Dashboard → Reload Blacklist</li>
+                        <li>Xem logs query: Dashboard → Query Logs → Xem domain có bị chặn không</li>
+                    </ul>
+                </details>
+
+                <p style="margin-top: 1rem; margin-bottom: 0;">
+                    <strong>Vẫn cần help?</strong> Mở issue trên <a href="https://github.com/ThienCheese/test/issues" target="_blank">GitHub</a>
+                </p>
+            </div>
+        </div>
+
         <div class="footer">
-            <p>Sau khi kết nối, bạn có thể truy cập Dashboard chính (yêu cầu đăng nhập) tại: <br><a href="https://nt140firewall.duckdns.org/">https://nt140firewall.duckdns.org/</a></p>
+            <p style="margin: 0;">
+                <strong>🛡️ DNS Firewall</strong> - Powered by Docker + Caddy + Python + Cloudflare<br>
+                <small>📍 Domain: <a href="https://thiencheese.me">thiencheese.me</a> | 
+                📊 Dashboard: <a href="https://thiencheese.me">https://thiencheese.me</a> | 
+                🔒 Encrypted with TLS 1.3</small>
+            </p>
         </div>
     </main>
 </body>

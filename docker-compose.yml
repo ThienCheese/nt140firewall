@@ -6,14 +6,10 @@ services:
     container_name: caddy_firewall
     restart: unless-stopped
     ports:
-      # Cổng 80 cho chuyển hướng HTTP->HTTPS và Sinkhole
-      - "80:80"
-      # Cổng 443 cho DoH và Dashboard (HTTP/3 được bật)
-      - "443:443"
+      # Cổng 8081 cho trang hướng dẫn trên LAN
       - "8081:8081"
-      - "443:443/udp"
-      # Cổng 853 cho DoT
-      - "853:853"
+      # Note: Không cần expose 80/443/853 ra ngoài vì đã dùng Cloudflare Tunnel
+      # Chỉ cần expose nếu muốn truy cập trực tiếp từ LAN
     networks:
       - nt140-net
     volumes:
@@ -22,10 +18,16 @@ services:
       - ./dashboard:/app/dashboard
       - ./clients:/app/clients
       - ./setup:/app/setup  
-      - caddy_data:/data # Lưu trữ chứng chỉ TLS
+      - caddy_data:/data # Lưu trữ dữ liệu Caddy
     environment:
-      # Cung cấp DUCKDNS_TOKEN cho module Caddy từ tệp.env
-      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN}
+      # Biến môi trường cho Caddyfile
+      - ADMIN_HASH_PASSWORD=${ADMIN_HASH_PASSWORD}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   dns_server:
     container_name: dns_firewall_server
@@ -58,9 +60,8 @@ services:
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - caddy
-    extra_hosts: # <--- THÊM KHỐI NÀY
-      - "host.docker.internal:host-gateway"
+      caddy:
+        condition: service_healthy
   
 
 networks:

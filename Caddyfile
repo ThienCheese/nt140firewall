@@ -1,57 +1,30 @@
 # Khối toàn cục (Global block)
 {
-    # Plugin DuckDNS
-    acme_dns duckdns {env.DUCKDNS_TOKEN}
-
-    # === ĐỊNH NGHĨA LAYER 4 (DoT) ===
-    # Đặt BÊN TRONG khối global
-    layer4 {
-        # Máy chủ lắng nghe trên cổng 853
-        :853 {
-            # Định nghĩa một tuyến đường (route)
-            route {
-                # 1. Chấm dứt TLS
-                # Nó sẽ tự động sử dụng chứng chỉ của
-                # 'nt140firewall.duckdns.org'
-                tls
-
-                # 2. Proxy lưu lượng TCP thô
-                proxy {
-                    # Backend Python DoT
-                    upstream dns_server:8053
-                }
-            }
-        }
-    }
+    # Tắt HTTPS tự động vì Cloudflare Tunnel xử lý TLS
+    auto_https off
 }
 
-
 # ==================================
-# == (MỚI) Trang Hướng dẫn LAN (Không bảo mật)
+# == Trang Hướng dẫn LAN (Port 8081)
 # ==================================
-# Truy cập qua http://<server_ip>:8081
 :8081 {
-    # Phục vụ các tệp Client
     handle /clients/* {
         root * /app
         file_server
     }
     
-    # Phục vụ trang setup (mặc định)
     handle {
         root * /app/setup
         file_server
     }
 }
-# ==================================
-# == Khối HTTP (DoH & Dashboard)
-# ==================================
-nt140firewall.duckdns.org {
-    # TLS cho khối HTTP này
-    tls {
-        dns duckdns {env.DUCKDNS_TOKEN}
-    }
 
+# ==================================
+# == Main Service - DoH & Dashboard
+# ==================================
+# Cloudflare Tunnel sẽ forward traffic đến đây
+# TLS đã được Cloudflare xử lý, Caddy chỉ nhận HTTP
+:80, :443 {
     # === Xử lý DoH ===
     handle /dns-query {
         reverse_proxy dns_server:8080
@@ -62,26 +35,44 @@ nt140firewall.duckdns.org {
         reverse_proxy dns_server:8000
     }
     
-    # Phục vụ các tệp Client
+    # === Client files ===
     handle /clients/* {
-        root * /app # Root là /app, Caddy sẽ tìm /app + /clients/...
+        root * /app
         file_server
     }
     
-    # Phục vụ các tệp tĩnh của Dashboard
+    # === Dashboard (with auth) ===
     handle {
         root * /app/dashboard
         basicauth /* {
-            admin $2a$14$mt7R/ZgkDJ7C5gVOt4hGmOUyJSKeamQkkxsLCli8G9zM4ghJjoJA.
+            admin {env.ADMIN_HASH_PASSWORD}
         }
         file_server
     }
 }
 
 # ==================================
-# == Khối Sinkhole Server
+# == DoT Support via Cloudflare Tunnel
 # ==================================
-:80 {
-    root * /var/www/sinkhole
-    file_server
+# Cloudflare sẽ terminate TLS và forward TCP đến đây
+:853 {
+    # Không cần TLS vì Cloudflare đã xử lý
+    # Chỉ cần proxy TCP stream đến Python DoT handler
+    reverse_proxy dns_server:8053
 }
+
+# ==================================
+# == Sinkhole Server (LAN only)
+# ==================================
+# Note: Port 80 đã dùng cho main service
+# Sinkhole sẽ được serve qua subdomain hoặc path
+# Tạm thời comment lại, có thể enable bằng cách:
+# 1. Serve qua path: /sinkhole
+# 2. Serve qua port khác: :8082
+# 3. Serve qua subdomain riêng trong Cloudflare
+# 
+# Uncomment nếu muốn serve trên port riêng:
+# :8082 {
+#     root * /var/www/sinkhole
+#     file_server
+# }

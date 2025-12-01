@@ -1,66 +1,597 @@
-# NT140-DNS-FIREWALL
+# 🛡️ DNS Firewall - Hướng dẫn Triển khai Hoàn chỉnh
 
-Dự án này cung cấp một giải pháp DNS Firewall mạnh mẽ, có khả năng tùy chỉnh cao, được đóng gói bằng Docker. Nó cho phép bạn chặn quảng cáo, mã độc, và các trang web theo dõi trên toàn bộ mạng của mình, đồng thời hỗ trợ các giao thức DNS mã hóa hiện đại như DNS-over-HTTPS (DoH) và DNS-over-TLS (DoT).
+Hệ thống DNS Firewall tự host tại nhà, giúp chặn quảng cáo, mã độc, và các trang web theo dõi cho **toàn bộ mạng gia đình** của bạn. Hỗ trợ truy cập an toàn từ mọi nơi với giao thức mã hóa DNS-over-HTTPS (DoH) và DNS-over-TLS (DoT).
 
-Nhờ tích hợp với **Cloudflare Tunnel**, hệ thống có thể được truy cập an toàn từ bất kỳ đâu trên thế giới, vượt qua các rào cản như CGNAT mà không cần IP tĩnh hay mở cổng trên router.
+## 📋 Mục lục
+- [Tổng quan hệ thống](#-tổng-quan-hệ-thống)
+- [Yêu cầu phần cứng & phần mềm](#-yêu-cầu-phần-cứng--phần-mềm)
+- [Bước 1: Chuẩn bị Domain & Cloudflare](#-bước-1-chuẩn-bị-domain--cloudflare)
+- [Bước 2: Cài đặt máy chủ (VM/Máy vật lý)](#-bước-2-cài-đặt-máy-chủ-vmmáy-vật-lý)
+- [Bước 3: Cấu hình Cloudflare Tunnel](#-bước-3-cấu-hình-cloudflare-tunnel)
+- [Bước 4: Cấu hình Router (LAN DNS)](#-bước-4-cấu-hình-router-lan-dns)
+- [Bước 5: Kiểm tra & Xác minh](#-bước-5-kiểm-tra--xác-minh)
+- [Khắc phục sự cố](#-khắc-phục-sự-cố)
+- [Nâng cao](#-nâng-cao)
 
-## ✨ Tính năng chính
+---
 
-- **Lọc DNS toàn diện**: Chặn các tên miền độc hại dựa trên các danh sách đen (blacklist) được cộng đồng cập nhật.
-- **Hỗ trợ giao thức mã hóa**: Bảo vệ quyền riêng tư của bạn với DoH và DoT.
-- **Dashboard quản trị**: Giao diện web trực quan để theo dõi thống kê, xem nhật ký truy vấn và quản lý hệ thống.
-- **Giải pháp cho CGNAT**: Tích hợp sẵn Cloudflare Tunnel để truy cập từ xa một cách an toàn và dễ dàng.
-- **Triển khai đơn giản**: Toàn bộ hệ thống được đóng gói trong các container Docker, dễ dàng cài đặt và quản lý với Docker Compose.
-- **Hiệu năng cao**: Xây dựng trên nền tảng Caddy và Python (FastAPI), đảm bảo hiệu suất và khả năng mở rộng.
-- **Tùy biến linh hoạt**: Dễ dàng thêm/bớt các nguồn blacklist, tùy chỉnh trang chặn (sinkhole), và cấu hình các tham số hệ thống.
+## 🎯 Tổng quan hệ thống
 
-## 🏗️ Kiến trúc sau khi tích hợp Cloudflare Tunnel
+### Tính năng chính
+- ✅ **Chặn quảng cáo toàn mạng**: Mọi thiết bị trong nhà được bảo vệ tự động
+- ✅ **DNS mã hóa (DoH/DoT)**: Bảo vệ quyền riêng tư, chống nghe lén
+- ✅ **Dashboard quản lý**: Xem thống kê, logs truy vấn DNS theo thời gian thực
+- ✅ **Truy cập từ xa**: Dùng DNS Firewall ngay cả khi không ở nhà (qua 4G/5G)
+- ✅ **Tự động cập nhật blacklist**: 24 giờ cập nhật một lần từ nguồn uy tín
+- ✅ **Hoạt động với CGNAT**: Không cần IP tĩnh, không mở port router
 
-Kiến trúc mới tận dụng Cloudflare Tunnel để tạo một kết nối an toàn và bền bỉ từ mạng nội bộ ra mạng lưới toàn cầu của Cloudflare.
-
+### Sơ đồ kiến trúc
 ```
-                        ┌─────────────────────────────────┐
-                        │        CLOUDFLARE NETWORK       │
-                        │ (your-domain.com)               │
-┌───────────────┐       │                                 │
-│ Client (WAN)  │──────▶│  DoH/DoT Endpoint (Port 443/853)│
-└───────────────┘       │  - TLS Termination              │
-                        │  - DDoS Protection              │
-                        └──────────┬──────────────────────┘
-                                   │ Cloudflare Tunnel (Encrypted)
-                                   │ (Outbound-only connection)
-                        ┌──────────▼──────────────────────┐
-                        │          HOME NETWORK           │
-                        │         (Behind CGNAT)          │
-                        │                                 │
-                        │ ┌─────────────────────────────┐ │
-                        │ │      Docker Environment     │ │
-                        │ │ ┌───────────────┐           │ │
-                        │ │ │  Cloudflared  │           │ │
-                        │ │ │   Container   │           │ │
-                        │ │ └───────┬───────┘           │ │
-                        │ │         │ (HTTP/TCP)        │ │
-                        │ │ ┌───────▼───────┐           │ │
-                        │ │ │     Caddy     │◀──────────┼─┐ ┌──────────────┐
-                        │ │ │  (Container)  │           │ │ │ Client (LAN) │
-                        │ │ └───────┬───────┘           │ │ └──────┬───────┘
-                        │ │         │ (HTTP)            │ │        │ (Port 53)
-                        │ │ ┌───────▼───────┐           │ │        │
-                        │ │ │ Python DNS    │───────────┘ │
-                        │ │ │    Server     │             │
-                        │ │ │  (Container)  │             │
-                        │ │ └───────────────┘             │
-                        │ └─────────────────────────────┘ │
-                        └─────────────────────────────────┘
+Internet (WAN)                    Home Network (LAN)
+     │                                  │
+     │  ┌─────────────────────┐         │
+     └─▶│  CLOUDFLARE EDGE    │         │
+        │  - DoH: port 443    │         │
+        │  - DoT: port 853    │         │
+        │  - TLS Termination  │         │
+        └──────────┬──────────┘         │
+                   │ Encrypted Tunnel   │
+                   │ (Outbound only)    │
+                   ▼                    │
+        ┌──────────────────────┐        │
+        │   HOME SERVER/VM     │        │
+        │  192.168.x.x         │        │
+        │ ┌──────────────────┐ │        │
+        │ │ Docker Compose   │ │        │
+        │ │ ┌──────────────┐ │ │        │
+        │ │ │ Cloudflared  │ │ │   Client devices
+        │ │ └──────┬───────┘ │ │   (Phones, PCs...)
+        │ │ ┌──────▼───────┐ │ │        │
+        │ │ │    Caddy     │◀┼─┼────────┘
+        │ │ │ Reverse Proxy│ │ │   Port 53 (DNS)
+        │ │ └──────┬───────┘ │ │
+        │ │ ┌──────▼───────┐ │ │
+        │ │ │  DNS Server  │ │ │
+        │ │ │   (Python)   │ │ │
+        │ │ │  + Blacklist │ │ │
+        │ │ └──────────────┘ │ │
+        │ └──────────────────┘ │
+        └──────────────────────┘
+            Router: 192.168.x.1
 ```
 
-**Luồng hoạt động:**
-1.  **Client từ WAN**: Gửi truy vấn DoH/DoT đến tên miền của bạn (`your-domain.com`).
-2.  **Cloudflare Edge**: Nhận truy vấn, xử lý TLS và chuyển tiếp nó qua Tunnel.
-3.  **Cloudflared Container**: Nhận lưu lượng từ Tunnel và gửi đến Caddy.
-4.  **Caddy Container**: Đóng vai trò reverse proxy, chuyển tiếp truy vấn đến Python DNS Server.
-5.  **Python DNS Server**: Lọc tên miền, trả về IP thật hoặc IP của trang sinkhole.
-6.  **Client từ LAN**: Vẫn có thể truy vấn trực tiếp qua cổng 53 như bình thường.
+**📊 Cách hoạt động:**
+- **Từ LAN (Trong nhà)**: Thiết bị → Router → Server port 53 → Lọc DNS
+- **Từ WAN (Ngoài nhà)**: Điện thoại → Cloudflare → Tunnel → Server → Lọc DNS
+
+---
+
+## 💻 Yêu cầu phần cứng & phần mềm
+
+### Phần cứng (chọn 1)
+- **Máy ảo (VM)**: VMware/VirtualBox/Proxmox
+  - RAM: Tối thiểu 512MB (khuyến nghị 1GB)
+  - CPU: 1 core
+  - Disk: 10GB
+- **Máy vật lý**: Raspberry Pi, Mini PC, máy tính cũ bất kỳ
+
+
+### Phần mềm
+- **Hệ điều hành**: Ubuntu 22.04/24.04 hoặc Debian 11/12
+- **Docker & Docker Compose**: Sẽ hướng dẫn cài đặt
+- **Kết nối Internet**: Băng thông tối thiểu 10Mbps
+
+### Tài khoản cần có
+- ✅ Tài khoản Cloudflare (miễn phí): https://dash.cloudflare.com/sign-up
+- ✅ Một tên miền (domain): Mua từ Namecheap, GoDaddy, hoặc bất kỳ nhà cung cấp nào
+
+---
+
+## 📝 Bước 1: Chuẩn bị Domain & Cloudflare
+
+### 1.1. Mua và thêm domain vào Cloudflare
+
+1. **Mua domain** từ nhà cung cấp (ví dụ: Namecheap, GoDaddy, Porkbun...)
+   - Khuyến nghị: `.com`, `.net`, `.me` (dễ nhớ)
+   - Ví dụ: `mydnsfirewall.com`
+
+2. **Thêm domain vào Cloudflare**:
+   - Đăng nhập https://dash.cloudflare.com
+   - Click **"Add a Site"** → Nhập domain của bạn
+   - Chọn gói **Free** (đủ dùng)
+   - Cloudflare sẽ quét DNS records hiện tại
+
+3. **Đổi Nameserver**:
+   - Cloudflare sẽ cung cấp 2 nameserver (ví dụ: `adam.ns.cloudflare.com`)
+   - Vào trang quản lý domain của bạn (Namecheap/GoDaddy...)
+   - Đổi **Nameservers** sang nameserver của Cloudflare
+   - **Chờ 5-30 phút** để DNS lan truyền (có thể đến 24h)
+
+4. **Xác minh**:
+   - Quay lại Cloudflare Dashboard
+   - Đợi thông báo **"Great news! Cloudflare is now protecting your site"**
+
+### 1.2. Tạo Cloudflare Tunnel
+
+1. Vào **Cloudflare Zero Trust Dashboard**:
+   - https://one.dash.cloudflare.com
+   - Lần đầu sẽ yêu cầu đặt tên team (tùy ý, ví dụ: `myteam`)
+
+2. Tạo Tunnel:
+   - Sidebar: **Networks** → **Tunnels**
+   - Click **"Create a tunnel"**
+   - Chọn **Cloudflared**
+   - Đặt tên tunnel (ví dụ: `dns-firewall-home`)
+   - Click **Save tunnel**
+
+3. **Lưu Token**:
+   - Màn hình tiếp theo hiển thị lệnh Docker chứa token
+   - Sao chép phần `--token eyJh...` (chuỗi rất dài)
+   - **LƯU CẨN THẬN**, sẽ dùng ở bước sau
+   - Ví dụ: `eyJhIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY...`
+
+4. **Cấu hình Public Hostnames** (bước quan trọng):
+   
+   **a) Hostname cho DoH và Dashboard:**
+   - Click **"Add a public hostname"**
+   - **Subdomain**: `dns` (hoặc để trống nếu dùng root domain)
+   - **Domain**: Chọn domain của bạn
+   - **Service Type**: `HTTP`
+   - **URL**: `caddy:80`
+   - Click **Save hostname**
+   
+   **b) Hostname cho DoT:**
+   - Click **"Add a public hostname"** lần nữa
+   - **Subdomain**: `dot`
+   - **Domain**: Chọn domain của bạn
+   - **Service Type**: `TCP`
+   - **URL**: `caddy:853`
+   - Click **Save hostname**
+
+**✅ Kết quả**: Bạn có 2 endpoint:
+- `https://dns.yourdomain.com` (DoH + Dashboard)
+- `dot.yourdomain.com` (DoT)
+
+---
+
+## 🖥️ Bước 2: Cài đặt máy chủ (VM/Máy vật lý)
+
+### 2.1. Cài đặt Ubuntu Server
+
+**Nếu dùng máy ảo (VMware/VirtualBox):**
+1. Tải Ubuntu Server 24.04 LTS ISO: https://ubuntu.com/download/server
+2. Tạo VM mới:
+   - RAM: 1GB
+   - CPU: 1 core
+   - Disk: 10GB
+   - Network: **Bridge** (để có IP trên cùng mạng LAN)
+3. Cài đặt Ubuntu (chọn OpenSSH server khi được hỏi)
+4. Sau khi cài xong, lấy địa chỉ IP:
+   ```bash
+   ip addr show
+   ```
+   - Tìm dòng có `inet 192.168.x.x` (không phải 127.0.0.1)
+   - **GHI NHỚ** IP này (ví dụ: `192.168.1.100`)
+
+**Nếu dùng Raspberry Pi / máy vật lý:**
+- Cài Ubuntu Server theo hướng dẫn chính thức
+- Kết nối qua SSH từ máy tính chính
+
+### 2.2. Cài đặt Docker & Docker Compose
+
+SSH vào máy chủ và chạy các lệnh sau:
+
+```bash
+# Cập nhật hệ thống
+sudo apt update && sudo apt upgrade -y
+
+# Cài đặt Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Cho phép user hiện tại dùng Docker (không cần sudo)
+sudo usermod -aG docker $USER
+
+# Cài đặt Docker Compose
+sudo apt install docker-compose-v2 
+
+# Khởi động lại session để áp dụng quyền
+newgrp docker
+
+# Kiểm tra cài đặt
+docker --version
+docker compose version
+```
+
+**Kết quả mong đợi:**
+```
+Docker version 24.x.x
+Docker Compose version v2.x.x
+```
+
+### 2.3. Clone project và cấu hình
+
+```bash
+# Clone repository
+git clone https://github.com/ThienCheese/test.git
+cd test
+
+# Tạo file cấu hình từ template
+cp .env.cloudflare .env
+
+# Mở file .env để chỉnh sửa
+nano .env
+```
+
+**Chỉnh sửa file `.env`:**
+```env
+# Thay YOUR_DOMAIN_NAME bằng domain của bạn
+YOUR_DOMAIN_NAME=yourdomain.com
+
+# Paste token từ Cloudflare Tunnel (bước 1.2)
+CLOUDFLARE_TUNNEL_TOKEN=eyJhIjoiYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY...
+
+# Đặt mật khẩu cho Dashboard (thay đổi mật khẩu mạnh)
+ADMIN_PASSWORD=YourStrongPassword123!
+
+# IP của server trong LAN (lấy ở bước 2.1)
+ROUTER_IP=192.168.1.1
+
+# IP sinkhole (trang chặn) - KHÔNG SỬA
+SINKHOLE_IP=127.0.0.1
+
+# DNS Upstream (KHÔNG SỬA nếu không rõ)
+UPSTREAM_DNS_1=1.1.1.1
+UPSTREAM_DNS_2=1.0.0.1
+```
+
+**Lưu file**: `Ctrl+O` → `Enter` → `Ctrl+X`
+
+### 2.4. Tạo hash mật khẩu cho Caddy
+
+```bash
+# Thay 'YourStrongPassword123!' bằng mật khẩu bạn đã đặt ở trên
+docker run --rm caddy:latest caddy hash-password --plaintext 'YourStrongPassword123!'
+```
+
+**Sao chép** chuỗi hash kết quả (bắt đầu bằng `$2a$14$...`)
+
+**Chỉnh sửa Caddyfile:**
+```bash
+nano Caddyfile
+```
+
+Tìm dòng `{$ADMIN_HASH_PASSWORD}` và thay bằng hash vừa tạo:
+```
+basicauth {
+    admin $2a$14$abcdefghijklmnopqrstuvwxyz...
+}
+```
+
+**Lưu file**: `Ctrl+O` → `Enter` → `Ctrl+X`
+
+### 2.5. Khởi động hệ thống
+
+```bash
+# Build và chạy tất cả containers
+sudo docker compose up -d --build
+
+# Kiểm tra trạng thái
+docker compose ps
+
+# Xem logs nếu có lỗi
+docker compose logs -f
+```
+
+**Kết quả mong đợi:**
+```
+NAME                    STATUS
+test-caddy-1           Up (healthy)
+test-cloudflared-1     Up
+test-dns_server-1      Up
+```
+
+**✅ Kiểm tra nhanh từ LAN:**
+```bash
+# Từ máy tính khác trong mạng LAN
+nslookup google.com 192.168.1.100
+```
+(Thay `192.168.1.100` bằng IP server của bạn)
+
+Nếu trả về IP → DNS server đang hoạt động! ✨
+
+---
+
+## 🌐 Bước 3: Cấu hình Cloudflare Tunnel
+
+### 3.1. Kiểm tra Tunnel đã kết nối
+
+1. Quay lại **Cloudflare Zero Trust Dashboard**
+2. **Networks** → **Tunnels**
+3. Tunnel của bạn phải có trạng thái **HEALTHY** (màu xanh)
+
+Nếu **DISCONNECTED** (màu đỏ):
+```bash
+# Xem logs của cloudflared
+docker compose logs cloudflared
+
+# Khởi động lại nếu cần
+docker compose restart cloudflared
+```
+
+### 3.2. Xác minh Public Hostnames
+
+Trong tab **Public Hostname** của tunnel, phải có 2 hostnames:
+
+| Hostname | Service Type | URL |
+|----------|--------------|-----|
+| `dns.yourdomain.com` | HTTP | `caddy:80` |
+| `dot.yourdomain.com` | TCP | `caddy:853` |
+
+### 3.3. Test từ Internet
+
+**Test DoH:**
+```bash
+# Từ máy tính BẤT KỲ có Internet (không cần trong LAN)
+curl -H "accept: application/dns-json" \
+  "https://dns.yourdomain.com/dns-query?name=google.com&type=A"
+```
+
+**Kết quả mong đợi:** JSON response với IP của google.com
+
+**Test Dashboard:**
+- Mở trình duyệt: `https://dns.yourdomain.com`
+- Đăng nhập: username `admin`, mật khẩu là `ADMIN_PASSWORD` đã đặt
+- Xem dashboard thống kê DNS
+
+**Test DoT** (cần cài `knot-dnsutils`):
+```bash
+# Ubuntu/Debian
+sudo apt install knot-dnsutils
+
+# Test DoT
+kdig @dot.yourdomain.com +tls google.com
+```
+
+---
+
+## 🔧 Bước 4: Cấu hình Router (LAN DNS)
+
+Để tất cả thiết bị trong nhà tự động dùng DNS Firewall:
+
+### 4.1. Cấu hình DNS trên Router
+
+**Cách 1: Thay đổi DNS Server (Đơn giản nhất)**
+
+1. Đăng nhập vào router (thường là `192.168.1.1` hoặc `192.168.0.1`)
+2. Tìm phần **DHCP Settings** hoặc **LAN Settings**
+3. Tìm mục **Primary DNS** hoặc **DNS Server**
+4. Đổi thành IP của server (ví dụ: `192.168.1.100`)
+5. **Secondary DNS**: Để trống hoặc `1.1.1.1` (backup)
+6. Lưu và khởi động lại router
+
+**Cách 2: DHCP Static DNS (Khuyến nghị)**
+
+Trên một số router cao cấp (Asus, OpenWRT, pfSense...):
+1. Vào **DHCP Server** settings
+2. Tìm **DNS Server 1**: Đặt IP server (`192.168.1.100`)
+3. **DNS Server 2**: `1.1.1.1` (fallback)
+
+### 4.2. Đặt IP tĩnh cho Server (Quan trọng!)
+
+Để IP server không đổi khi khởi động lại:
+
+1. Vào **DHCP Server** → **Address Reservation** (hoặc tên tương tự)
+2. Tìm MAC address của server
+3. Gán IP tĩnh (ví dụ: `192.168.1.100`)
+4. Lưu cấu hình
+
+### 4.3. Split-Horizon DNS (Nâng cao - Tùy chọn)
+
+**Mục đích**: Khi ở trong nhà, thiết bị sẽ kết nối trực tiếp đến server thay vì đi qua Internet.
+
+**Cách làm** (nếu router hỗ trợ Static DNS hoặc Host Override):
+1. Tìm mục **DNS Hostname** hoặc **Static DNS**
+2. Thêm 2 bản ghi:
+   - **Hostname**: `dns.yourdomain.com` → **IP**: `192.168.1.100`
+   - **Hostname**: `dot.yourdomain.com` → **IP**: `192.168.1.100`
+3. Lưu cấu hình
+
+**Lợi ích:**
+- Thiết bị di động có thể dùng cùng 1 cấu hình DoT cho cả trong và ngoài nhà
+- Trong nhà: Kết nối trực tiếp (nhanh)
+- Ngoài nhà: Tự động chuyển qua Cloudflare Tunnel
+
+---
+
+## ✅ Bước 5: Kiểm tra & Xác minh
+
+### 5.1. Test từ thiết bị trong LAN
+
+**Trên Windows:**
+```cmd
+nslookup google.com
+```
+→ Phải thấy server là `192.168.1.100`
+
+**Trên Linux/Mac:**
+```bash
+dig google.com
+```
+→ Xem dòng `SERVER: 192.168.1.100#53`
+
+**Test chặn quảng cáo:**
+```bash
+nslookup ads.google.com
+```
+→ Phải trả về `127.0.0.1` (bị chặn)
+
+### 5.2. Test từ thiết bị di động
+
+**Android:**
+1. **Cài đặt** → **Kết nối** → **Thêm mạng riêng tư (Private DNS)**
+2. Chọn **Private DNS provider hostname**
+3. Nhập: `dot.yourdomain.com`
+4. Lưu
+
+**iOS:**
+1. **Cài đặt** → **Chung** → **VPN & Quản lý thiết bị**
+2. Tải app **DNSCloak** hoặc **1.1.1.1**
+3. Cấu hình endpoint: `https://dns.yourdomain.com/dns-query`
+
+**Test:** Mở trình duyệt, vào các trang web có nhiều quảng cáo (ví dụ: vnexpress.net) → Quảng cáo sẽ biến mất!
+
+### 5.3. Xem thống kê trên Dashboard
+
+1. Mở trình duyệt: `https://dns.yourdomain.com` hoặc `http://192.168.1.100:8081` (từ LAN)
+2. Đăng nhập với `admin` / mật khẩu đã đặt
+3. Xem:
+   - **Queries Dashboard**: Số lượng truy vấn DNS
+   - **Blocked Queries**: Số domain bị chặn
+   - **Query Logs**: Lịch sử truy vấn chi tiết
+
+---
+
+## 🔍 Khắc phục sự cố
+
+### ❌ Lỗi "Container exited"
+
+```bash
+# Xem logs chi tiết
+docker compose logs caddy
+docker compose logs dns_server
+docker compose logs cloudflared
+
+# Khởi động lại
+docker compose down
+docker compose up -d --build
+```
+
+### ❌ Không kết nối được DoT/DoH từ Internet
+
+**Kiểm tra:**
+1. Cloudflare Tunnel status phải là **HEALTHY**
+2. Public Hostnames đã cấu hình đúng (HTTP cho DoH, TCP cho DoT)
+3. Domain đã được add vào Cloudflare và nameserver đã đổi
+
+```bash
+# Test DNS từ server
+dig @1.1.1.1 dns.yourdomain.com
+dig @1.1.1.1 dot.yourdomain.com
+
+# Phải trả về IP Cloudflare (104.x.x.x hoặc 172.x.x.x)
+```
+
+### ❌ Thiết bị trong LAN không dùng DNS Firewall
+
+1. Khởi động lại router sau khi đổi DNS
+2. Khởi động lại thiết bị client hoặc chạy `ipconfig /release` → `ipconfig /renew` (Windows)
+3. Kiểm tra DNS server hiện tại:
+   ```bash
+   # Windows
+   ipconfig /all
+   
+   # Linux/Mac
+   cat /etc/resolv.conf
+   ```
+
+### ❌ Port 53 bị chiếm
+
+Nếu server đã chạy `systemd-resolved`:
+```bash
+# Kiểm tra
+sudo lsof -i :53
+
+# Tắt systemd-resolved
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+
+# Chỉnh sửa DNS thủ công
+sudo nano /etc/resolv.conf
+```
+Thêm dòng: `nameserver 1.1.1.1`
+
+### ❌ Tunnel DISCONNECTED
+
+```bash
+# Xem logs
+docker compose logs cloudflared
+
+# Kiểm tra token
+cat .env | grep CLOUDFLARE_TUNNEL_TOKEN
+
+# Tạo tunnel mới nếu token sai
+# (Quay lại Cloudflare Dashboard tạo tunnel mới)
+```
+
+---
+
+## 🚀 Nâng cao
+
+### Tùy chỉnh Blacklist
+
+```bash
+# Thêm domain vào blacklist thủ công
+echo "ads.example.com" >> server/data/blacklist.txt
+
+# Hoặc chỉnh sửa nguồn blacklist
+nano server/data/blacklist_sources.txt
+```
+
+Hệ thống tự động cập nhật blacklist mỗi 24 giờ từ các nguồn:
+- StevenBlack/hosts
+- OISD
+- Hagezi
+
+### Cấu hình nâng cao cho Router
+
+**OpenWRT/pfSense**: Dùng Dnsmasq để cấu hình chi tiết hơn
+**Asus Router**: Cài Merlin firmware để có nhiều tùy chọn DNS hơn
+
+### Benchmark hiệu năng
+
+```bash
+# Cài dnsperf
+sudo apt install dnsperf
+
+# Chạy benchmark
+./benchmark.sh
+```
+
+### Sao lưu và Phục hồi
+
+```bash
+# Sao lưu cấu hình
+tar -czf dns-firewall-backup.tar.gz .env Caddyfile docker-compose.yml server/data/
+
+# Phục hồi
+tar -xzf dns-firewall-backup.tar.gz
+docker compose up -d
+```
+
+---
+
+## 📚 Tài liệu tham khảo
+
+- [Cloudflare Tunnel Documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/)
+- [Caddy Documentation](https://caddyserver.com/docs/)
+- [DNS-over-HTTPS RFC 8484](https://www.rfc-editor.org/rfc/rfc8484.html)
+- [DNS-over-TLS RFC 7858](https://www.rfc-editor.org/rfc/rfc7858.html)
+
+---
+
+## 🤝 Hỗ trợ
+
+Nếu gặp vấn đề, hãy:
+1. Kiểm tra phần [Khắc phục sự cố](#-khắc-phục-sự-cố)
+2. Xem logs: `docker compose logs -f`
+3. Mở Issue trên GitHub: https://github.com/ThienCheese/test/issues
+
+---
+
+## 📄 License
+
+MIT License - Xem file [LICENSE](LICENSE) để biết chi tiết
 
 ## 🚀 Bắt đầu
 
