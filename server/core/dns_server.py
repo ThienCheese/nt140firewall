@@ -4,6 +4,7 @@ from core.config import settings
 from core.filtering import BlacklistManager
 from core.forwarder import forward_query
 from api.database import log_query_to_db # Import hàm log
+from core.cache import dns_cache # Import DNS cache
 
 class DNSUDPProtocol(asyncio.DatagramProtocol):
     """Xử lý các truy vấn UDP trên cổng 53."""
@@ -28,11 +29,24 @@ class DNSUDPProtocol(asyncio.DatagramProtocol):
             pass 
 
     async def handle_query(self, data: bytes, addr: tuple, qname: str, client_ip: str, record):
+        qtype = record.get_q().qtype
+        
+        # 1. Check blacklist trước
         if await self.manager.is_blocked(qname):
             response_bytes = self.manager.get_sinkhole_response(record)
             await log_query_to_db(client_ip, qname, "blocked")
         else:
-            response_bytes = await forward_query(data, client_ip)
+            # 2. Check cache
+            response_bytes = await dns_cache.get(qname, qtype)
+            
+            if response_bytes is None:
+                # 3. Cache miss → forward query
+                response_bytes = await forward_query(data, client_ip)
+                
+                # 4. Cache response nếu hợp lệ
+                if response_bytes:
+                    asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
+            
             await log_query_to_db(client_ip, qname, "allowed")
 
         if response_bytes:
@@ -80,11 +94,24 @@ class DNSTCPProtocol(asyncio.Protocol):
                 break
 
     async def handle_query(self, data: bytes, qname: str, client_ip: str, record):
+        qtype = record.get_q().qtype
+        
+        # 1. Check blacklist trước
         if await self.manager.is_blocked(qname):
             response_bytes = self.manager.get_sinkhole_response(record)
             await log_query_to_db(client_ip, qname, "blocked")
         else:
-            response_bytes = await forward_query(data, client_ip)
+            # 2. Check cache
+            response_bytes = await dns_cache.get(qname, qtype)
+            
+            if response_bytes is None:
+                # 3. Cache miss → forward query
+                response_bytes = await forward_query(data, client_ip)
+                
+                # 4. Cache response nếu hợp lệ
+                if response_bytes:
+                    asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
+            
             await log_query_to_db(client_ip, qname, "allowed")
 
         if response_bytes:

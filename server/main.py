@@ -7,6 +7,7 @@ from core.dns_server import start_dns_listeners
 from core.blacklist_updater import start_blacklist_updater
 from core.filtering import blacklist_manager
 from core.config import settings
+from core.cache import start_cache_cleanup_worker
 from api.routes import router as api_router
 from api.database import init_db
 
@@ -25,10 +26,12 @@ async def lifespan(app: FastAPI):
     loop = asyncio.get_running_loop()
     dns_task = loop.create_task(start_dns_listeners(blacklist_manager))
     updater_task = loop.create_task(start_blacklist_updater(blacklist_manager))
+    cache_task = loop.create_task(start_cache_cleanup_worker())
     
     print(f"--- Máy chủ DNS đang lắng nghe trên cổng {settings.DNS_PORT_UDP} (UDP/TCP) ---")
     print(f"--- Trình lắng nghe DoT proxy đang lắng nghe trên cổng {settings.DOT_PROXY_PORT} ---")
     print(f"--- Trình cập nhật Blacklist đã khởi động ---")
+    print(f"--- DNS Cache worker đã khởi động ---")
     
     yield # Ứng dụng FastAPI chạy trong khi các tác vụ này chạy nền
     
@@ -36,7 +39,8 @@ async def lifespan(app: FastAPI):
     print("Bắt đầu quá trình tắt máy...")
     dns_task.cancel()
     updater_task.cancel()
-    await asyncio.gather(dns_task, updater_task, return_exceptions=True)
+    cache_task.cancel()
+    await asyncio.gather(dns_task, updater_task, cache_task, return_exceptions=True)
     print("Tắt máy hoàn tất.")
 
 # Khởi tạo ứng dụng FastAPI chính

@@ -10,6 +10,7 @@ from typing import List
 from core.config import settings
 from core.filtering import blacklist_manager
 from core.forwarder import forward_query
+from core.cache import dns_cache
 from api.database import get_session, DNSLog, log_query_to_db
 from api.models import Stats, LogEntry, APIConfig
 from dnslib import DNSRecord
@@ -112,3 +113,20 @@ async def get_config():
         router_ip=settings.ROUTER_IP,
         upstream_dns=[settings.UPSTREAM_DNS_1, settings.UPSTREAM_DNS_2]
     )
+
+@router.get("/api/cache/stats", tags=["Admin"], dependencies=[Depends(get_current_user)])
+async def get_cache_stats():
+    """Lấy cache statistics (yêu cầu xác thực)."""
+    return await dns_cache.get_stats()
+
+@router.post("/api/cache/clear", tags=["Admin"], dependencies=[Depends(get_current_user)])
+async def clear_cache():
+    """Xóa toàn bộ DNS cache (yêu cầu xác thực)."""
+    await dns_cache.clear()
+    return {"message": "Cache cleared successfully"}
+
+@router.delete("/api/cache/{domain}", tags=["Admin"], dependencies=[Depends(get_current_user)])
+async def invalidate_cache(domain: str):
+    """Xóa cache entries cho một domain cụ thể (yêu cầu xác thực)."""
+    await dns_cache.invalidate(domain)
+    return {"message": f"Cache invalidated for {domain}"}
