@@ -10,12 +10,28 @@ from typing import List
 from core.config import settings
 from core.filtering import blacklist_manager
 from core.forwarder import forward_query
-from api.database import get_session, DNSLog
+from api.database import get_session, DNSLog, get_async_session
 from api.models import Stats, LogEntry, APIConfig
 from dnslib import DNSRecord
 
 router = APIRouter()
 security = HTTPBasic()
+
+# Helper function to log queries to database
+async def log_query_to_db(client_ip: str, domain: str, status: str):
+    """Log DNS query to database."""
+    try:
+        async with get_async_session() as session:
+            log_entry = DNSLog(
+                client_ip=client_ip,
+                domain=domain,
+                status=status,
+                timestamp=datetime.datetime.utcnow()
+            )
+            session.add(log_entry)
+            await session.commit()
+    except Exception as e:
+        print(f"Error logging query to DB: {e}")
 
 def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
     """Kiểm tra xác thực Basic Auth cho các endpoint quản trị."""
