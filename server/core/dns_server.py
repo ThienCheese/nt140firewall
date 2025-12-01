@@ -3,6 +3,7 @@ from dnslib import DNSRecord
 from core.config import settings
 from core.filtering import BlacklistManager
 from core.forwarder import forward_query
+from core.static_dns import static_dns_manager  # Import static DNS
 from api.database import log_query_to_db # Import hàm log
 from core.cache import dns_cache # Import DNS cache
 
@@ -31,19 +32,27 @@ class DNSUDPProtocol(asyncio.DatagramProtocol):
     async def handle_query(self, data: bytes, addr: tuple, qname: str, client_ip: str, record):
         qtype = record.get_q().qtype
         
-        # 1. Check blacklist trước
+        # 1. Check static DNS trước (để tránh circular dependency)
+        response_bytes = static_dns_manager.get_static_response(record)
+        if response_bytes:
+            # Static domain (VD: thiencheese.me) → return ngay
+            await log_query_to_db(client_ip, qname, "static")
+            self.transport.sendto(response_bytes, addr)
+            return
+        
+        # 2. Check blacklist
         if await self.manager.is_blocked(qname):
             response_bytes = self.manager.get_sinkhole_response(record)
             await log_query_to_db(client_ip, qname, "blocked")
         else:
-            # 2. Check cache
+            # 3. Check cache
             response_bytes = await dns_cache.get(qname, qtype)
             
             if response_bytes is None:
-                # 3. Cache miss → forward query
+                # 4. Cache miss → forward query
                 response_bytes = await forward_query(data, client_ip)
                 
-                # 4. Cache response nếu hợp lệ
+                # 5. Cache response nếu hợp lệ
                 if response_bytes:
                     asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
             
@@ -96,19 +105,28 @@ class DNSTCPProtocol(asyncio.Protocol):
     async def handle_query(self, data: bytes, qname: str, client_ip: str, record):
         qtype = record.get_q().qtype
         
-        # 1. Check blacklist trước
+        # 1. Check static DNS trước (để tránh circular dependency)
+        response_bytes = static_dns_manager.get_static_response(record)
+        if response_bytes:
+            # Static domain (VD: thiencheese.me) → return ngay
+            await log_query_to_db(client_ip, qname, "static")
+            len_prefix = len(response_bytes).to_bytes(2, 'big')
+            self.transport.write(len_prefix + response_bytes)
+            return
+        
+        # 2. Check blacklist
         if await self.manager.is_blocked(qname):
             response_bytes = self.manager.get_sinkhole_response(record)
             await log_query_to_db(client_ip, qname, "blocked")
         else:
-            # 2. Check cache
+            # 3. Check cache
             response_bytes = await dns_cache.get(qname, qtype)
             
             if response_bytes is None:
-                # 3. Cache miss → forward query
+                # 4. Cache miss → forward query
                 response_bytes = await forward_query(data, client_ip)
                 
-                # 4. Cache response nếu hợp lệ
+                # 5. Cache response nếu hợp lệ
                 if response_bytes:
                     asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
             

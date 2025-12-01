@@ -11,6 +11,7 @@ from core.config import settings
 from core.filtering import blacklist_manager
 from core.forwarder import forward_query
 from core.cache import dns_cache
+from core.static_dns import static_dns_manager
 from api.database import get_session, DNSLog, log_query_to_db
 from api.models import Stats, LogEntry, APIConfig
 from dnslib import DNSRecord
@@ -58,7 +59,17 @@ async def handle_doh(request: Request):
     except Exception:
         return Response(f"Invalid DNS packet", status_code=400)
 
-    # Tái sử dụng logic lọc và chuyển tiếp
+    # 1. Check static DNS trước (để tránh circular dependency)
+    response_bytes = static_dns_manager.get_static_response(record)
+    if response_bytes:
+        await log_query_to_db(client_ip, qname, "static")
+        return Response(
+            content=response_bytes,
+            media_type="application/dns-message",
+            headers={"Content-Length": str(len(response_bytes))}
+        )
+    
+    # 2. Tái sử dụng logic lọc và chuyển tiếp
     if await blacklist_manager.is_blocked(qname):
         response_bytes = blacklist_manager.get_sinkhole_response(record)
         await log_query_to_db(client_ip, qname, "blocked")
