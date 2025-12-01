@@ -63,37 +63,23 @@ async def forward_doh(request_bytes: bytes, host: str) -> bytes | None:
         return None
 
 # ==================================
-# == PHẦN ĐÃ SỬA LỖI
-# ==================================
 async def forward_query(request_bytes: bytes, client_ip: str) -> bytes | None:
     """
-    Logic định tuyến với performance optimization:
-    - Query cả 2 upstream servers ĐỒNG THỜI (parallel)
-    - Lấy kết quả nhanh nhất (race condition)
-    - Sử dụng UDP cho tốc độ (5-20ms vs DoH 50-100ms)
-    - Fallback to DoH nếu UDP fail
+    Logic định tuyến đã được sửa lỗi (Fix):
+    - Bất kể client là LAN hay WAN (DoH/DoT), TẤT CẢ các truy vấn
+    - KHÔNG bị chặn (allowed) sẽ được chuyển tiếp (forward) đến
+    - các máy chủ DNS ngược dòng (upstream) công cộng (ví dụ: 1.1.1.1).
+    - Điều này đảm bảo một chính sách lọc nhất quán và
+    - tránh bị ảnh hưởng bởi bộ lọc của ISP/Router (tránh Split-Policy).
     """
     
-    # Parallel query to both upstreams (race condition - lấy cái nhanh nhất)
-    tasks = [
-        forward_udp(request_bytes, settings.UPSTREAM_DNS_1, 53),
-        forward_udp(request_bytes, settings.UPSTREAM_DNS_2, 53)
-    ]
-    
-    # Wait for first successful response
-    for coro in asyncio.as_completed(tasks):
-        try:
-            response = await coro
-            if response is not None:
-                return response  # Return first successful response!
-        except Exception:
-            continue
-    
-    # If all UDP failed, fallback to DoH
-    print(f"⚠️ All UDP failed, falling back to DoH...")
+    # Bỏ qua client_ip, luôn sử dụng upstream công cộng
+    # để đảm bảo một chính sách lọc (policy) nhất quán.
     response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_1)
     
     if response is None:
+        # Thử máy chủ dự phòng nếu máy chủ đầu tiên thất bại
+        print(f"Upstream 1 ({settings.UPSTREAM_DNS_1}) failed, trying upstream 2...")
         response = await forward_doh(request_bytes, settings.UPSTREAM_DNS_2)
-    
+        
     return response
