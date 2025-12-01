@@ -52,12 +52,15 @@
 }
 
 # ==================================
-# == DoT Support via Cloudflare Tunnel
+# == DoT Support with TLS (for Android Private DNS)
 # ==================================
-# Cloudflare sẽ terminate TLS và forward TCP đến đây
-:853 {
-    # Không cần TLS vì Cloudflare đã xử lý
-    # Chỉ cần proxy TCP stream đến Python DoT handler
+thiencheese.me:853 {
+    # TLS configuration với Cloudflare Origin Certificate
+    tls /certs/cert.pem /certs/key.pem {
+        protocols tls1.2 tls1.3
+    }
+    
+    # Reverse proxy đến Python DoT handler
     reverse_proxy dns_server:8053
 }
 

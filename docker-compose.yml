@@ -19,6 +19,7 @@ services:
       - ./clients:/app/clients
       - ./setup:/app/setup  
       - caddy_data:/data # Lưu trữ dữ liệu Caddy
+      - ./certs:/certs:ro # Mount Cloudflare Origin Certificates
     environment:
       # Biến môi trường cho Caddyfile
       - ADMIN_HASH_PASSWORD=${ADMIN_HASH_PASSWORD}
