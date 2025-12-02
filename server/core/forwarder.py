@@ -17,46 +17,6 @@ doh_client = httpx.AsyncClient(
     )
 )
 
-class UDPForwarderProtocol(asyncio.DatagramProtocol):
-    """Protocol tùy chỉnh để xử lý một lần chuyển tiếp UDP."""
-    def __init__(self, request_bytes: bytes, response_future: asyncio.Future):
-        self.request_bytes = request_bytes
-        self.response_future = response_future
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-        self.transport.sendto(self.request_bytes)
-
-    def datagram_received(self, data, addr):
-        if not self.response_future.done():
-            self.response_future.set_result(data)
-        self.transport.close()
-
-    def error_received(self, exc):
-        if not self.response_future.done():
-            self.response_future.set_exception(exc)
-        self.transport.close()
-
-    def connection_lost(self, exc):
-        if not self.response_future.done():
-            self.response_future.set_exception(exc or ConnectionError("Connection lost"))
-
-async def forward_udp(request_bytes: bytes, host: str, port: int) -> bytes | None:
-    """Chuyển tiếp truy vấn DNS bằng UDP."""
-    loop = asyncio.get_running_loop()
-    response_future = loop.create_future()
-    
-    try:
-        await loop.create_datagram_endpoint(
-            lambda: UDPForwarderProtocol(request_bytes, response_future),
-            remote_addr=(host, port)
-        )
-        return await asyncio.wait_for(response_future, timeout=1.5)  # Giảm xuống 1.5s
-    except Exception as e:
-        print(f"Lỗi khi chuyển tiếp UDP đến {host}:{port}: {e}")
-        return None
-
 async def forward_doh(request_bytes: bytes, host: str) -> bytes | None:
     """Chuyển tiếp truy vấn DNS bằng DoH."""
     try:

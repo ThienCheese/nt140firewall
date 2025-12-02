@@ -13,3 +13,19 @@ Statistics:
                                                                                                                                  
   Average Latency (s):  0.055416 (min 0.000081, max 4.267079)                                                                    
   Latency StdDev (s):   0.178333   
+
+dnsperf -s thiencheese.me -d queryfile.txt -c 160 -l 30
+
+Statistics:
+
+  Queries sent:         6330
+  Queries completed:    5872 (92.76%)
+  Queries lost:         458 (7.24%)
+
+  Response codes:       NOERROR 5835 (99.37%), SERVFAIL 2 (0.03%), NXDOMAIN 35 (0.60%)
+  Average packet size:  request 30, response 60
+  Run time (s):         31.248587
+  Queries per second:   187.912497
+
+  Average Latency (s):  0.141386 (min 0.022815, max 1.653807)
+  Latency StdDev (s):   0.169450
