@@ -59,6 +59,14 @@ class DNSUDPProtocol(asyncio.DatagramProtocol):
             # 5. Cache response nếu hợp lệ
             if response_bytes:
                 asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
+        else:
+            # Cache hit → Rewrite Query ID để match request
+            try:
+                cached_record = DNSRecord.parse(response_bytes)
+                cached_record.header.id = record.header.id  # Match với request ID
+                response_bytes = cached_record.pack()
+            except:
+                pass  # Nếu parse lỗi, dùng cached response as-is
         
         await log_query_to_db(client_ip, qname, "allowed")
 
@@ -138,6 +146,14 @@ class DNSTCPProtocol(asyncio.Protocol):
             # 5. Cache response nếu hợp lệ
             if response_bytes:
                 asyncio.create_task(dns_cache.set(qname, qtype, response_bytes))
+        else:
+            # Cache hit → Rewrite Query ID để match request
+            try:
+                cached_record = DNSRecord.parse(response_bytes)
+                cached_record.header.id = record.header.id  # Match với request ID
+                response_bytes = cached_record.pack()
+            except:
+                pass  # Nếu parse lỗi, dùng cached response as-is
         
         await log_query_to_db(client_ip, qname, "allowed")
 
